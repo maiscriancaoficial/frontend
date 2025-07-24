@@ -1,0 +1,932 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id                   String               @id @default(uuid())
+  nome                 String
+  email                String               @unique
+  senha                String
+  role                 Role                 @default(CLIENTE)
+  tipoPessoa           TipoPessoa?
+  cpfCnpj              String?              @unique
+  telefone             String?
+  fotoPerfil           String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  cep                  String?
+  rua                  String?
+  numero               String?
+  complemento          String?
+  bairro               String?
+  cidade               String?
+  estado               String?
+  pais                 String?              @default("Brasil")
+  acessosRelatorio     AcessoRelatorio[]
+  cuponsUtilizados     CupomUtilizado[]
+  livrosPersonalizados LivroPersonalizado[]
+  pedidos              Pedido[]
+  sessoes              Sessao[]
+  tokenResets          TokenReset[]
+  afiliado             Afiliado?
+  historicoPedidos     HistoricoPedido[]
+
+  @@map("usuarios")
+}
+
+model TokenReset {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  usuarioId String
+  createdAt DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("token_resets")
+}
+
+model Sessao {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  usuarioId String
+  expiresAt DateTime
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("sessoes")
+}
+
+model Categoria {
+  id           String             @id @default(uuid())
+  titulo       String
+  descricao    String?
+  slug         String             @unique
+  imagemCapa   String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  livrosLink   LivroCategoria[]
+  postagens    Postagem[]
+  produtosLink ProdutoCategoria[]
+
+  @@map("categorias")
+}
+
+model CategoriaBlog {
+  id        String     @id @default(uuid())
+  nome      String
+  slug      String     @unique
+  descricao String?
+  ativo     Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  postagens Postagem[]
+
+  @@map("categorias_blog")
+}
+
+model Tag {
+  id            String        @id @default(uuid())
+  nome          String        @unique
+  slug          String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  postagensLink PostagemTag[]
+  livrosLink    LivroTag[]
+  produtosLink  ProdutoTag[]
+
+  @@map("tags")
+}
+
+model TagBlog {
+  id            String        @id @default(uuid())
+  nome          String        @unique
+  slug          String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  postagensLink PostagemTagBlog[]
+
+  @@map("tags_blog")
+}
+
+model Produto {
+  id                       String               @id @default(uuid())
+  titulo                   String
+  descricao                String?
+  descricaoLonga           String?
+  slug                     String               @unique
+  preco                    Float
+  precoPromocional         Float?
+  sku                      String?              @unique
+  estoque                  Int                  @default(0)
+  fotoPrincipal            String?
+  galeria                  String[]
+  peso                     Float?
+  altura                   Float?
+  largura                  Float?
+  comprimento              Float?
+  palavrasChave            String?
+  pontuacaoSEO             Int?
+  emDestaque               Boolean              @default(false)
+  ativo                    Boolean              @default(true)
+  tamanho                  String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  // fretesProduto removido - focando em produtos digitais
+  itensPedido              ItemPedido[]
+  categoriasLink           ProdutoCategoria[]
+  relacionadoParaLink      ProdutoRelacionado[] @relation("ProdutoDestino")
+  produtosRelacionadosLink ProdutoRelacionado[] @relation("ProdutoOrigem")
+  tagsLink                 ProdutoTag[]
+  cliquesAfiliados         CliqueAfiliado[]
+
+  @@map("produtos")
+}
+
+model ProdutoCategoria {
+  produtoId   String
+  categoriaId String
+  createdAt   DateTime  @default(now())
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  produto     Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@id([produtoId, categoriaId])
+  @@map("produtos_categorias")
+}
+
+model ProdutoTag {
+  produtoId String
+  tagId     String
+  createdAt DateTime @default(now())
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([produtoId, tagId])
+  @@map("produtos_tags")
+}
+
+model ProdutoRelacionado {
+  produtoOrigemId  String
+  produtoDestinoId String
+  createdAt        DateTime @default(now())
+  produtoDestino   Produto  @relation("ProdutoDestino", fields: [produtoDestinoId], references: [id], onDelete: Cascade)
+  produtoOrigem    Produto  @relation("ProdutoOrigem", fields: [produtoOrigemId], references: [id], onDelete: Cascade)
+
+  @@id([produtoOrigemId, produtoDestinoId])
+  @@map("produtos_relacionados")
+}
+
+// Modelo Frete removido - focando em produtos digitais apenas
+
+// Modelo FreteProduto removido - focando em produtos digitais apenas
+
+model Cupom {
+  id               String           @id @default(uuid())
+  titulo           String
+  codigo           String           @unique
+  descricao        String?
+  tipoDesconto     TipoDesconto
+  valorDesconto    Float
+  dataExpiracao    DateTime?
+  qtdMaxPorUsuario Int?
+  ativo            Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  cuponsUtilizados CupomUtilizado[]
+  pedidos          Pedido[]
+
+  @@map("cupons")
+}
+
+model CupomUtilizado {
+  id        String   @id @default(uuid())
+  cupomId   String
+  usuarioId String
+  dataUso   DateTime @default(now())
+  pedidoId  String?
+  cupom     Cupom    @relation(fields: [cupomId], references: [id], onDelete: Cascade)
+  pedido    Pedido?  @relation(fields: [pedidoId], references: [id])
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("cupons_utilizados")
+}
+
+model Banner {
+  id             String   @id @default(uuid())
+  titulo         String
+  descricao      String?
+  fotoDesktop    String
+  fotoMobile     String?
+  ordem          Int      @default(0)
+  ativo          Boolean  @default(true)
+  botao1Label    String?
+  botao1Link     String?
+  botao1Cor      String?
+  botao1CorFonte String?
+  botao1Tamanho  String?
+  botao2Label    String?
+  botao2Link     String?
+  botao2Cor      String?
+  botao2CorFonte String?
+  botao2Tamanho  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("banners")
+}
+
+
+
+model Postagem {
+  id                        String                @id @default(uuid())
+  titulo                    String
+  slug                      String                @unique
+  conteudo                  String
+  resumo                    String?
+  fotoCapa                  String?
+  categoriaBlogId           String?
+  categoriaId               String?
+  autor                     String?
+  palavrasChave             String?
+  pontuacaoSEO              Int?
+  ativo                     Boolean               @default(true)
+  visualizacoes             Int                   @default(0)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  categoria                 Categoria?            @relation(fields: [categoriaId], references: [id])
+  categoriaBlog             CategoriaBlog?        @relation(fields: [categoriaBlogId], references: [id])
+  relacionadaParaLink       PostagemRelacionada[] @relation("PostagemDestino")
+  postagensRelacionadasLink PostagemRelacionada[] @relation("PostagemOrigem")
+  tagsLink                  PostagemTag[]
+  tagsBlogLink              PostagemTagBlog[]
+
+  @@map("postagens")
+}
+
+model PostagemTag {
+  postagemId String
+  tagId      String
+  createdAt  DateTime @default(now())
+  postagem   Postagem @relation(fields: [postagemId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postagemId, tagId])
+  @@map("postagens_tags")
+}
+
+model PostagemTagBlog {
+  postagemId String
+  tagBlogId  String
+  createdAt  DateTime @default(now())
+  postagem   Postagem @relation(fields: [postagemId], references: [id], onDelete: Cascade)
+  tagBlog    TagBlog  @relation(fields: [tagBlogId], references: [id], onDelete: Cascade)
+
+  @@id([postagemId, tagBlogId])
+  @@map("postagens_tags_blog")
+}
+
+model PostagemRelacionada {
+  postagemOrigemId  String
+  postagemDestinoId String
+  createdAt         DateTime @default(now())
+  postagemDestino   Postagem @relation("PostagemDestino", fields: [postagemDestinoId], references: [id], onDelete: Cascade)
+  postagemOrigem    Postagem @relation("PostagemOrigem", fields: [postagemOrigemId], references: [id], onDelete: Cascade)
+
+  @@id([postagemOrigemId, postagemDestinoId])
+  @@map("postagens_relacionadas")
+}
+
+model AcessoRelatorio {
+  id         String   @id @default(uuid())
+  tipo       String
+  referencia String?
+  usuarioId  String?
+  ipAddress  String?
+  userAgent  String?
+  dataAcesso DateTime @default(now())
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("acessos_relatorio")
+}
+
+model ConfiguracaoSistema {
+  id        String   @id @default(uuid())
+  chave     String   @unique
+  valor     String
+  descricao String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracoes_sistema")
+}
+
+model Livro {
+  id                String               @id @default(uuid())
+  nome              String
+  autor             String?
+  descricao         String?
+  descricaoCompleta String?
+  faixaEtaria       String?
+  numeroPaginas     Int?
+  precoDigital      Float?
+  precoFisico       Float?
+  preco             Float
+  precoPromocional  Float?
+  sku               String?              @unique
+  capa              String
+  imagemCapa        String?
+  capaVerso         String?
+  tipo              String               @default("virtual")
+  estoque           Int                  @default(0)
+  ativo             Boolean              @default(true)
+  emDestaque        Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  itensPedido       ItemPedido[]
+  beneficios        LivroBeneficio[]
+  categoriasLink    LivroCategoria[]
+  personalizacoes   LivroPersonalizado[]
+  tagsLink          LivroTag[]
+  paginas           Pagina[]
+
+  @@map("livros")
+}
+
+model LivroCategoria {
+  livroId     String
+  categoriaId String
+  createdAt   DateTime  @default(now())
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  livro       Livro     @relation(fields: [livroId], references: [id], onDelete: Cascade)
+
+  @@id([livroId, categoriaId])
+  @@map("livros_categorias")
+}
+
+model LivroTag {
+  livroId   String
+  tagId     String
+  createdAt DateTime @default(now())
+  livro     Livro    @relation(fields: [livroId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([livroId, tagId])
+  @@map("livros_tags")
+}
+
+model LivroBeneficio {
+  id        String   @id @default(uuid())
+  livroId   String
+  titulo    String
+  descricao String
+  icone     String?
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  livro     Livro    @relation(fields: [livroId], references: [id], onDelete: Cascade)
+
+  @@map("livros_beneficios")
+}
+
+model LivroPersonalizado {
+  id                  String   @id @default(uuid())
+  usuarioId           String
+  livroId             String
+  avatarId            String?
+  nomePersonagem      String?
+  dadosPersonalizados Json?
+  status              String   @default("rascunho")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  avatar              Avatar?  @relation(fields: [avatarId], references: [id])
+  livro               Livro    @relation(fields: [livroId], references: [id], onDelete: Cascade)
+  usuario             Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  itensPedido         ItemPedido[]
+
+  @@map("livros_personalizados")
+}
+
+
+model Pagina {
+  id        String   @id @default(uuid())
+  livroId   String
+  numero    Int
+  arquivo   String
+  conteudo  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  livro     Livro    @relation(fields: [livroId], references: [id], onDelete: Cascade)
+
+  @@unique([livroId, numero])
+  @@map("paginas")
+}
+
+// ===== SISTEMA DE AVATARES =====
+
+model Avatar {
+  id                   String               @id @default(uuid())
+  nome                 String
+  tipo                 TipoAvatar           // MASCULINO, FEMININO, UNISSEX
+  descricao            String?
+  fotoPrincipal        String?              // Foto principal do avatar
+  ativo                Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  
+  // Relacionamentos com elementos customizáveis
+  elementos            AvatarElemento[]
+  livrosPersonalizados LivroPersonalizado[]
+
+  @@map("avatares")
+}
+
+model AvatarElemento {
+  id        String            @id @default(uuid())
+  avatarId  String
+  tipo      TipoElemento      // CABELO, OCULOS, ROUPA, etc.
+  nome      String            // Nome do elemento (ex: "Cabelo Cacheado")
+  arquivo   String            // Caminho da imagem
+  cor       String?           // Cor do elemento (hex)
+  ordem     Int               @default(0) // Para ordenar elementos
+  ativo     Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  
+  // Relacionamentos
+  avatar    Avatar            @relation(fields: [avatarId], references: [id], onDelete: Cascade)
+  
+  @@map("avatar_elementos")
+}
+
+enum TipoAvatar {
+  MASCULINO
+  FEMININO
+  UNISSEX
+}
+
+enum TipoElemento {
+  CABELO
+  OCULOS
+  ROUPA
+  SHORTS
+  BONE
+  CHAPEU
+  COR_ROUPA
+  COR_AVATAR
+  COR_CABELO
+  OLHOS
+  ADERECOS
+  SAPATOS
+  MEIAS
+  LUVAS
+  BRINCOS
+  COLAR
+  PULSEIRA
+  RELOGIO
+  MOCHILA
+  OUTROS
+}
+
+
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+}
+
+enum StatusPedido {
+  AGUARDANDO_PAGAMENTO
+  PAGAMENTO_APROVADO
+  EM_PREPARACAO
+  ENVIADO
+  ENTREGUE
+  CANCELADO
+  ESTORNADO
+}
+
+enum TipoDesconto {
+  PORCENTAGEM
+  FIXO
+  SEQUENCIAL_POR_UNIDADE
+}
+
+enum TipoFrete {
+  POR_CEP
+  POR_CIDADE
+  POR_ESTADO
+  POR_REGIAO
+  POR_KM
+  POR_PRODUTO
+}
+
+enum TipoCobrancaFrete {
+  PERCENTUAL
+  FIXO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  BOLETO
+  DINHEIRO
+  TRANSFERENCIA
+}
+
+model GrupoAfiliado {
+  id                String   @id @default(uuid())
+  nome              String   @unique
+  descricao         String?
+  ativo             Boolean  @default(true)
+  // Configurações de comissão do grupo
+  tipoEventoComissao TipoEventoComissao @default(CHECKOUT)
+  tipoComissao      TipoComissao @default(PORCENTAGEM)
+  valorComissao     Float    @default(10)
+  // Configurações de saque
+  metodoSaque       MetodoSaque @default(PIX)
+  valorMinimoSaque  Float    @default(50)
+  diasCarencia      Int      @default(7)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  afiliados         Afiliado[]
+
+  @@map("grupos_afiliados")
+}
+
+model Afiliado {
+  id                    String   @id @default(uuid())
+  usuarioId             String   @unique
+  grupoAfiliadoId       String?
+  codigoAfiliado        String   @unique
+  ativo                 Boolean  @default(true)
+  pendente              Boolean  @default(true)
+  // Configurações individuais (sobrescreve grupo/global)
+  tipoEventoComissao    TipoEventoComissao?
+  tipoComissao          TipoComissao?
+  valorComissao         Float?
+  valorMinimoSaque      Float?
+  diasCarencia          Int?
+  // Estatísticas
+  totalVendas           Int      @default(0)
+  totalGanhos           Float    @default(0)
+  totalSacado           Float    @default(0)
+  saldoDisponivel       Float    @default(0)
+  totalCliques          Int      @default(0)
+  totalAcessos          Int      @default(0)
+  conversoes            Int      @default(0)
+  taxaConversao         Float    @default(0)
+  ultimaVenda           DateTime?
+  ultimoAcesso          DateTime?
+  // Dados do Asaas
+  asaasCustomerId       String?
+  asaasSplitId          String?
+  // Outros
+  linkAfiliado          String?
+  pixChave              String?
+  observacoes           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  usuario               Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  grupoAfiliado         GrupoAfiliado? @relation(fields: [grupoAfiliadoId], references: [id])
+  acessos               AcessoAfiliado[]
+  cliques               CliqueAfiliado[]
+  comissoes             ComissaoAfiliado[]
+  saques                SaqueAfiliado[]
+  vendas                VendaAfiliado[]
+  pedidos               Pedido[]
+
+  @@map("afiliados")
+}
+
+model VendaAfiliado {
+  id          String   @id @default(uuid())
+  afiliadoId  String
+  pedidoId    String?
+  valor       Float
+  comissao    Float
+  status      StatusVendaAfiliado @default(PENDENTE)
+  dataVenda   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  afiliado    Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+  pedido      Pedido?  @relation(fields: [pedidoId], references: [id])
+  comissaoAfiliado ComissaoAfiliado?
+
+  @@map("vendas_afiliados")
+}
+
+model ComissaoAfiliado {
+  id              String   @id @default(uuid())
+  afiliadoId      String
+  vendaId         String?  @unique
+  acessoId        String?  @unique
+  cliqueId        String?  @unique
+  tipoEvento      TipoEventoComissao
+  valor           Float
+  status          StatusComissao @default(PENDENTE)
+  dataPagamento   DateTime?
+  asaasPaymentId  String?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  afiliado        Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+  venda           VendaAfiliado? @relation(fields: [vendaId], references: [id])
+  acesso          AcessoAfiliado? @relation(fields: [acessoId], references: [id])
+  clique          CliqueAfiliado? @relation(fields: [cliqueId], references: [id])
+
+  @@map("comissoes_afiliados")
+}
+
+model SaqueAfiliado {
+  id              String   @id @default(uuid())
+  afiliadoId      String
+  valor           Float
+  status          StatusSaque @default(SOLICITADO)
+  metodoPagamento MetodoSaque @default(PIX)
+  pixChave        String?
+  dadosBancarios  Json?
+  observacoes     String?
+  dataSolicitacao DateTime @default(now())
+  dataProcessamento DateTime?
+  asaasTransferId String?
+  motivoRejeicao  String?
+  processadoPor   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  afiliado        Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+
+  @@map("saques_afiliados")
+}
+
+model AcessoAfiliado {
+  id          String   @id @default(uuid())
+  afiliadoId  String
+  ipAddress   String?
+  userAgent   String?
+  referer     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  dataAcesso  DateTime @default(now())
+  converteu   Boolean  @default(false)
+  pedidoId    String?
+  createdAt   DateTime @default(now())
+  afiliado    Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+  comissao    ComissaoAfiliado?
+
+  @@map("acessos_afiliados")
+}
+
+model CliqueAfiliado {
+  id          String   @id @default(uuid())
+  afiliadoId  String
+  produtoId   String?
+  linkDestino String
+  ipAddress   String?
+  userAgent   String?
+  dataClique  DateTime @default(now())
+  converteu   Boolean  @default(false)
+  pedidoId    String?
+  createdAt   DateTime @default(now())
+  afiliado    Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+  produto     Produto? @relation(fields: [produtoId], references: [id])
+  comissao    ComissaoAfiliado?
+
+  @@map("cliques_afiliados")
+}
+
+model ConfiguracaoAfiliado {
+  id                      String   @id @default(uuid())
+  // Configurações padrão de comissão
+  tipoComissaoPadrao      TipoComissao @default(PORCENTAGEM)
+  valorComissaoPadrao     Float    @default(10)
+  tipoEventoComissaoPadrao TipoEventoComissao @default(CHECKOUT)
+  // Configurações padrão de saque
+  metodoSaquePadrao       MetodoSaque @default(PIX)
+  valorMinimoSaquePadrao  Float    @default(50)
+  diasProcessamentoSaque  Int      @default(7)
+  // Integração Asaas
+  asaasApiKey             String?  @default("")
+  asaasEnvironment        String   @default("sandbox")
+  asaasWebhookUrl         String?  @default("")
+  // Configurações de links
+  dominioAfiliado         String   @default("maiscrianca.com")
+  prefixoLink             String   @default("ref")
+  // Configurações gerais
+  aprovacaoAutomatica     Boolean  @default(false)
+  limiteVendasAprovacao   Int      @default(5)
+  cookieExpiracao         Int      @default(30)
+  ativo                   Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("configuracoes_afiliados")
+}
+
+enum TipoComissao {
+  PORCENTAGEM
+  FIXO
+}
+
+enum TipoEventoComissao {
+  ACESSO
+  CLIQUE
+  CHECKOUT
+  CUPOM
+}
+
+enum StatusVendaAfiliado {
+  PENDENTE
+  CONFIRMADA
+  CANCELADA
+}
+
+enum StatusComissao {
+  PENDENTE
+  PAGA
+  CANCELADA
+}
+
+enum StatusSaque {
+  SOLICITADO
+  EM_ANALISE
+  APROVADO
+  PROCESSANDO
+  PAGO
+  REJEITADO
+  CANCELADO
+}
+
+enum MetodoSaque {
+  PIX
+  TRANSFERENCIA_BANCARIA
+  CONTA_DIGITAL
+}
+
+enum Role {
+  ADMIN
+  CLIENTE
+  FUNCIONARIO
+  ASSINANTE
+  AFILIADO
+  PARCEIRO
+}
+
+// Modelo de Pedidos para E-commerce Digital
+model Pedido {
+  id                    String            @id @default(uuid())
+  numero                String            @unique // Número sequencial do pedido
+  usuarioId             String
+  status                StatusPedido      @default(AGUARDANDO_PAGAMENTO)
+  
+  // Valores do pedido
+  subtotal              Float
+  valorDesconto         Float             @default(0)
+  valorTotal            Float
+  
+  // Informações de pagamento
+  metodoPagamento       MetodoPagamento?
+  statusPagamento       StatusPagamento   @default(PENDENTE)
+  transacaoId           String?           // ID da transação no gateway (Asaas, etc)
+  pixQrCode             String?           // QR Code para pagamento PIX
+  pixCopiaCola          String?           // Código PIX copia e cola
+  boletoUrl             String?           // URL do boleto
+  boletoCodigoBarras    String?           // Código de barras do boleto
+  dataPagamento         DateTime?
+  dataVencimento        DateTime?
+  
+  // Cupom de desconto
+  cupomId               String?
+  codigoCupom           String?
+  
+  // Afiliado
+  afiliadoId            String?
+  codigoAfiliado        String?
+  
+  // Observações
+  observacoes           String?
+  observacoesInternas   String?
+  
+  // Timestamps
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  // Relacionamentos
+  usuario               Usuario           @relation(fields: [usuarioId], references: [id])
+  itens                 ItemPedido[]
+  cupom                 Cupom?            @relation(fields: [cupomId], references: [id])
+  afiliado              Afiliado?         @relation(fields: [afiliadoId], references: [id])
+  pagamentos            PagamentoPedido[]
+  historico             HistoricoPedido[]
+  vendasAfiliados       VendaAfiliado[]   // Para compatibilidade com sistema existente
+  cupomUtilizado        CupomUtilizado[]  // Relacionamento com cupons utilizados
+  
+  @@map("pedidos")
+}
+
+model ItemPedido {
+  id                    String            @id @default(uuid())
+  pedidoId              String
+  
+  // Produto ou Livro
+  produtoId             String?
+  livroId               String?
+  
+  // Personalização (para livros)
+  livroPersonalizadoId  String?
+  avatarPersonalizado   Json?             // Dados do avatar personalizado
+  nomePersonagem        String?           // Nome do personagem no livro
+  
+  // Dados do item no momento da compra
+  nome                  String
+  descricao             String?
+  preco                 Float
+  quantidade            Int               @default(1)
+  subtotal              Float
+  
+  // Arquivos digitais (para produtos digitais)
+  arquivosDigitais      String[]          @default([])
+  linkDownload          String?
+  dataLiberacao         DateTime?         // Quando o produto foi liberado
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  // Relacionamentos
+  pedido                Pedido            @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto               Produto?          @relation(fields: [produtoId], references: [id])
+  livro                 Livro?            @relation(fields: [livroId], references: [id])
+  livroPersonalizado    LivroPersonalizado? @relation(fields: [livroPersonalizadoId], references: [id])
+  
+  @@map("itens_pedido")
+}
+
+model PagamentoPedido {
+  id                    String            @id @default(uuid())
+  pedidoId              String
+  
+  // Dados do pagamento
+  valor                 Float
+  metodoPagamento       MetodoPagamento
+  status                StatusPagamento   @default(PENDENTE)
+  
+  // Integração com gateway
+  transacaoId           String?           // ID no gateway (Asaas)
+  gatewayResposta       Json?             // Resposta completa do gateway
+  
+  // Dados específicos por método
+  pixQrCode             String?
+  pixCopiaCola          String?
+  boletoUrl             String?
+  boletoCodigoBarras    String?
+  
+  // Datas
+  dataProcessamento     DateTime?
+  dataConfirmacao       DateTime?
+  dataVencimento        DateTime?
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  // Relacionamentos
+  pedido                Pedido            @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  
+  @@map("pagamentos_pedido")
+}
+
+model HistoricoPedido {
+  id                    String            @id @default(uuid())
+  pedidoId              String
+  
+  statusAnterior        StatusPedido?
+  statusNovo            StatusPedido
+  observacao            String?
+  usuarioId             String?           // Quem fez a alteração
+  
+  createdAt             DateTime          @default(now())
+  
+  // Relacionamentos
+  pedido                Pedido            @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  usuario               Usuario?          @relation(fields: [usuarioId], references: [id])
+  
+  @@map("historico_pedidos")
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PROCESSANDO
+  APROVADO
+  RECUSADO
+  CANCELADO
+  ESTORNADO
+  EXPIRADO
+}
+
