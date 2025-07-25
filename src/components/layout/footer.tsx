@@ -540,7 +540,7 @@ export function Footer() {
       
       {/* Copyright e info adicional */}
       <div className="bg-gray-100 dark:bg-gray-900 py-6">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-1">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-center md:text-left mb-4 md:mb-0">
               <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -564,12 +564,7 @@ export function Footer() {
             </div>
           </div>
           
-          <div className="text-center text-xs text-gray-500 dark:text-gray-500 mt-6">
-            <p>
-              As imagens dos produtos são meramente ilustrativas. Os preços podem sofrer alterações sem aviso prévio.
-              *Consulte condições de entrega para sua região.
-            </p>
-          </div>
+          
         </div>
       </div>
     </footer>
