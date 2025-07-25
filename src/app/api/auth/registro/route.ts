@@ -46,8 +46,7 @@ export async function POST(request: NextRequest) {
         nome,
         email,
         senha: senhaHash,
-        role: 'CLIENTE',
-        ativo: true
+        role: 'CLIENTE'
       }
     });
 

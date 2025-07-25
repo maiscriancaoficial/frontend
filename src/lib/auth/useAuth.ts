@@ -94,9 +94,28 @@ export const useAuth = create<EstadoAuth>((set, get) => ({
       set({ 
         usuario: dados.usuario,
         autenticado: true, 
-        carregando: false,
+        carregando: true, // Mantém carregando durante redirecionamento
         erro: null
       });
+      
+      // Redirecionamento automático após registro bem-sucedido
+      const role = dados.usuario.role as string;
+      const redirecionamentos: Record<string, string> = {
+        'ADMIN': '/dashboard/admin',
+        'FUNCIONARIO': '/dashboard/funcionario',
+        'CLIENTE': '/conta',
+        'ASSINANTE': '/conta',
+        'AFILIADO': '/dashboard/afiliado',
+      };
+      
+      const destino = redirecionamentos[role] || '/';
+      console.log('Redirecionando após registro para:', destino);
+      console.log('Role do usuário:', role);
+      
+      // Redirecionamento forçado
+      setTimeout(() => {
+        window.location.href = destino;
+      }, 100);
       
       return true;
     } catch (error) {

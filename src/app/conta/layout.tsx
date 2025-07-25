@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
-import { MenuConta } from '@/components/conta/menu-conta'
-import { PageTitle } from '@/components/ui/page-title'
+import { HeaderConta } from '@/components/conta/header-conta'
+import NavigationConta from '@/components/conta/navigation-conta'
 
 export const metadata: Metadata = {
   title: 'Minha Conta - Mais criança',
@@ -12,24 +12,26 @@ export default function ContaLayout({
 }: {
   children: React.ReactNode
 }) {
-  // A autenticação é verificada pelo middleware
-  // Não precisamos duplicar essa verificação aqui
-
   return (
-    <div className="container mx-auto px-4 py-10">
-      <PageTitle
-        title="Minha Conta"
-        subtitle="Gerencie seus pedidos, dados pessoais e mais"
-      />
-
-      <div className="flex flex-col md:flex-row gap-8 mt-8">
-        <div className="md:w-1/4">
-          <MenuConta />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Header Compacto e Moderno */}
+      <div className="bg-white border-b border-gray-100 shadow-sm">
+        <div className="container mx-auto px-6 py-6">
+          <HeaderConta />
         </div>
-        <div className="md:w-3/4">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            {children}
-          </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="container mx-auto px-6">
+          <NavigationConta />
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="container mx-auto px-6 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {children}
         </div>
       </div>
     </div>

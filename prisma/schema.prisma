@@ -36,6 +36,9 @@ model Usuario {
   tokenResets          TokenReset[]
   afiliado             Afiliado?
   historicoPedidos     HistoricoPedido[]
+  favoritos            Favorito[]
+  transacoesCashback   TransacaoCashback[]
+  solicitacoesReembolso SolicitacaoReembolso[]
 
   @@map("usuarios")
 }
@@ -147,6 +150,7 @@ model Produto {
   produtosRelacionadosLink ProdutoRelacionado[] @relation("ProdutoOrigem")
   tagsLink                 ProdutoTag[]
   cliquesAfiliados         CliqueAfiliado[]
+  favoritos                Favorito[]
 
   @@map("produtos")
 }
@@ -356,6 +360,7 @@ model Livro {
   personalizacoes   LivroPersonalizado[]
   tagsLink          LivroTag[]
   paginas           Pagina[]
+  favoritos         Favorito[]
 
   @@map("livros")
 }
@@ -828,6 +833,8 @@ model Pedido {
   historico             HistoricoPedido[]
   vendasAfiliados       VendaAfiliado[]   // Para compatibilidade com sistema existente
   cupomUtilizado        CupomUtilizado[]  // Relacionamento com cupons utilizados
+  transacoesCashback    TransacaoCashback[]
+  solicitacoesReembolso SolicitacaoReembolso[]
   
   @@map("pedidos")
 }
@@ -865,6 +872,7 @@ model ItemPedido {
   produto               Produto?          @relation(fields: [produtoId], references: [id])
   livro                 Livro?            @relation(fields: [livroId], references: [id])
   livroPersonalizado    LivroPersonalizado? @relation(fields: [livroPersonalizadoId], references: [id])
+  solicitacoesReembolso SolicitacaoReembolso[]
   
   @@map("itens_pedido")
 }
@@ -928,5 +936,109 @@ enum StatusPagamento {
   CANCELADO
   ESTORNADO
   EXPIRADO
+}
+
+// ===== MODELOS PARA ÁREA DO CLIENTE =====
+
+// Modelo para Favoritos dos usuários
+model Favorito {
+  id        String   @id @default(uuid())
+  usuarioId String
+  produtoId String?
+  livroId   String?
+  createdAt DateTime @default(now())
+  
+  // Relacionamentos
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  produto   Produto? @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  livro     Livro?   @relation(fields: [livroId], references: [id], onDelete: Cascade)
+  
+  // Garantir que não haja duplicatas
+  @@unique([usuarioId, produtoId])
+  @@unique([usuarioId, livroId])
+  @@map("favoritos")
+}
+
+// Modelo para Transações de Cashback
+model TransacaoCashback {
+  id          String            @id @default(uuid())
+  usuarioId   String
+  tipo        TipoCashback      // CREDITO, DEBITO
+  valor       Float
+  descricao   String
+  status      StatusCashback    @default(PENDENTE)
+  pedidoId    String?           // Referência ao pedido que gerou o cashback
+  
+  // Dados adicionais
+  observacoes String?
+  processadoEm DateTime?
+  expiresAt   DateTime?         // Data de expiração do cashback
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pedido      Pedido?  @relation(fields: [pedidoId], references: [id])
+  
+  @@map("transacoes_cashback")
+}
+
+// Modelo para Solicitações de Reembolso
+model SolicitacaoReembolso {
+  id          String           @id @default(uuid())
+  usuarioId   String
+  pedidoId    String
+  itemPedidoId String?         // Item específico do pedido (opcional)
+  
+  // Dados da solicitação
+  motivo      String
+  descricao   String?
+  valor       Float
+  status      StatusReembolso  @default(SOLICITADO)
+  
+  // Dados de processamento
+  analisadoPor     String?     // ID do funcionário que analisou
+  dataAnalise      DateTime?
+  observacoesAdmin String?     // Observações internas
+  
+  // Dados de pagamento
+  metodoPagamento  MetodoPagamento?
+  dadosPagamento   Json?       // Dados bancários, PIX, etc
+  dataProcessamento DateTime?
+  transacaoId      String?     // ID da transação de reembolso
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pedido      Pedido      @relation(fields: [pedidoId], references: [id])
+  itemPedido  ItemPedido? @relation(fields: [itemPedidoId], references: [id])
+  
+  @@map("solicitacoes_reembolso")
+}
+
+// Enums para os novos modelos
+enum TipoCashback {
+  CREDITO
+  DEBITO
+}
+
+enum StatusCashback {
+  PENDENTE
+  APROVADO
+  EXPIRADO
+  CANCELADO
+}
+
+enum StatusReembolso {
+  SOLICITADO
+  EM_ANALISE
+  APROVADO
+  PROCESSANDO
+  CONCLUIDO
+  REJEITADO
+  CANCELADO
 }
 

@@ -84,9 +84,15 @@ export function EstatisticasPedidos() {
     return (
       <div className="space-y-6">
         <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">Métricas de Pedidos</h3>
-        <div className="text-center py-8">
-          <p className="text-red-500">{error || 'Erro ao carregar dados'}</p>
-        </div>
+        <Card className="border-gray-200 dark:border-gray-800 shadow-sm">
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Nenhum pedido ainda</h3>
+              <p className="text-gray-500 dark:text-gray-400">Quando você tiver pedidos, as métricas aparecerão aqui.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -33,8 +33,8 @@ export default function RegistroPage() {
     const redirecionamentos: Record<string, string> = {
       'ADMIN': '/dashboard/admin',
       'FUNCIONARIO': '/dashboard/funcionario',
-      'CLIENTE': '/minha-conta',
-      'ASSINANTE': '/minha-conta',
+      'CLIENTE': '/conta',
+      'ASSINANTE': '/conta',
       'AFILIADO': '/dashboard/afiliado',
     };
     return redirecionamentos[role] || '/';
@@ -53,7 +53,23 @@ export default function RegistroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verificarSenhas()) return;
-    await registro(nome, email, senha, confirmarSenha);
+    
+    setCarregando(true);
+    setErro(null);
+    
+    try {
+      const resultado = await registro(nome, email, senha, confirmarSenha);
+      
+      if (!resultado) {
+        // Se o registro falhou, pode ser email duplicado ou outro erro
+        setErro('Este email já está em uso. Tente fazer login ou use outro email.');
+      }
+    } catch (error) {
+      console.error('Erro no registro:', error);
+      setErro('Erro interno. Tente novamente em alguns instantes.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
@@ -106,19 +122,6 @@ export default function RegistroPage() {
                 </div>
               </div>
             </div>
-            <div className="space-y-2 mb-4">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={carregando}
-              />
-            </div>
-            
             <div className="relative">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-1 block">Email</Label>
               <div className="relative">

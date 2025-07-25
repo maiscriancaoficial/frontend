@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronDown, TrendingUp, TrendingDown, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from 'react';
 
 type DataPoint = {
@@ -10,77 +10,41 @@ type DataPoint = {
   value: number;
 };
 
-// Mock data
-const weeklyData: DataPoint[] = [
-  { date: "Seg", value: 1420 },
-  { date: "Ter", value: 2350 },
-  { date: "Qua", value: 1850 },
-  { date: "Qui", value: 3100 },
-  { date: "Sex", value: 2790 },
-  { date: "Sáb", value: 3600 },
-  { date: "Dom", value: 2100 },
-];
-
-const monthlyData: DataPoint[] = Array.from({ length: 30 }, (_, i) => {
-  const day = i + 1;
-  const value = Math.floor(Math.random() * 5000) + 1000;
-  return { date: `${day}`, value };
-});
-
-const yearlyData: DataPoint[] = [
-  { date: "Jan", value: 42500 },
-  { date: "Fev", value: 38700 },
-  { date: "Mar", value: 45200 },
-  { date: "Abr", value: 50300 },
-  { date: "Mai", value: 55100 },
-  { date: "Jun", value: 49800 },
-  { date: "Jul", value: 52400 },
-  { date: "Ago", value: 57300 },
-  { date: "Set", value: 53600 },
-  { date: "Out", value: 59200 },
-  { date: "Nov", value: 63500 },
-  { date: "Dez", value: 72100 },
-];
+type VendasData = {
+  pedidos: {
+    total: number;
+    receita: {
+      total: number;
+      crescimento: number;
+    };
+  };
+};
 
 export function GraficoVendas() {
   const [activeTab, setActiveTab] = useState("semanal");
-  const [chartWidth, setChartWidth] = useState(0);
-  const [chartHeight, setChartHeight] = useState(300);
+  const [loading, setLoading] = useState(true);
+  const [vendasData, setVendasData] = useState<VendasData | null>(null);
   
-  // Handle resize
+  // Carregar dados reais da API
   useEffect(() => {
-    const handleResize = () => {
-      const container = document.getElementById('vendas-chart-container');
-      if (container) {
-        setChartWidth(container.clientWidth);
+    const carregarDados = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/relatorios/metricas?periodo=30');
+        const data = await response.json();
+        
+        if (data.success) {
+          setVendasData(data.metricas);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    carregarDados();
   }, []);
-  
-  // Calculate chart data based on active tab
-  const getChartData = () => {
-    switch (activeTab) {
-      case "semanal": return weeklyData;
-      case "mensal": return monthlyData;
-      case "anual": return yearlyData;
-      default: return weeklyData;
-    }
-  };
-  
-  const chartData = getChartData();
-  
-  // Get max value for scaling
-  const maxValue = Math.max(...chartData.map(d => d.value));
-  
-  // Calculate period comparison
-  const currentTotal = chartData.reduce((sum, item) => sum + item.value, 0);
-  const previousTotal = currentTotal * 0.85; // Mock data: assume 15% growth
-  const growthPercentage = ((currentTotal - previousTotal) / previousTotal) * 100;
-  const isPositiveGrowth = growthPercentage >= 0;
   
   // Format currency
   const formatCurrency = (value: number) => {
@@ -90,6 +54,42 @@ export function GraficoVendas() {
       minimumFractionDigits: 2,
     });
   };
+  
+  if (loading) {
+    return (
+      <Card className="border-gray-200 dark:border-gray-800 shadow-sm">
+        <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pb-4">
+          <CardTitle className="text-xl text-gray-800 dark:text-gray-200">Relatório de Vendas</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!vendasData) {
+    return (
+      <Card className="border-gray-200 dark:border-gray-800 shadow-sm">
+        <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pb-4">
+          <CardTitle className="text-xl text-gray-800 dark:text-gray-200">Relatório de Vendas</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="text-center py-12">
+            <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Nenhuma venda ainda</h3>
+            <p className="text-gray-500 dark:text-gray-400">Quando você tiver vendas, elas aparecerão aqui.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const { pedidos } = vendasData;
+  const isPositiveGrowth = pedidos.receita.crescimento >= 0;
   
   return (
     <Card className="border-gray-200 dark:border-gray-800 shadow-sm">
@@ -124,63 +124,66 @@ export function GraficoVendas() {
       </CardHeader>
       
       <CardContent className="pt-6">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-8 mb-6">
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Vendas</p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {formatCurrency(currentTotal)}
-            </h3>
-          </div>
-          
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Comparado com período anterior
-            </p>
-            <div className="flex items-center gap-2">
-              <h3 className={`text-xl font-bold ${isPositiveGrowth ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {growthPercentage > 0 ? '+' : ''}{growthPercentage.toFixed(1)}%
-              </h3>
-              {isPositiveGrowth ? (
-                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-pink-500 p-2 rounded-full">
+                <ShoppingBag className="h-5 w-5 text-white" />
+              </div>
+              {pedidos.receita.crescimento !== 0 && (
+                <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  isPositiveGrowth 
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {isPositiveGrowth ? '+' : ''}{pedidos.receita.crescimento.toFixed(1)}%
+                </div>
               )}
             </div>
+            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+              Receita Total
+            </h4>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatCurrency(pedidos.receita.total)}
+            </p>
+          </div>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-blue-500 p-2 rounded-full">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+              Total de Pedidos
+            </h4>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {pedidos.total}
+            </p>
+          </div>
+          
+          <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="bg-green-500 p-2 rounded-full">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+              Ticket Médio
+            </h4>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {pedidos.total > 0 ? formatCurrency(pedidos.receita.total / pedidos.total) : formatCurrency(0)}
+            </p>
           </div>
         </div>
         
-        <div className="relative" id="vendas-chart-container" style={{ height: `${chartHeight}px` }}>
-          <div className="flex h-full items-end gap-2 relative">
-            {chartData.map((item, index) => {
-              const barHeight = (item.value / maxValue) * chartHeight * 0.8;
-              
-              return (
-                <div 
-                  key={index} 
-                  className="flex-1 flex flex-col items-center justify-end"
-                >
-                  <div 
-                    className="w-full bg-pink-500 hover:bg-pink-600 dark:bg-pink-600 dark:hover:bg-pink-700 rounded-t-sm transition-all cursor-pointer group relative"
-                    style={{ height: `${barHeight}px` }}
-                  >
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                      {formatCurrency(item.value)}
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-600 dark:text-gray-400 mt-1">{item.date}</span>
-                </div>
-              );
-            })}
+        {pedidos.total === 0 && (
+          <div className="text-center py-8 mt-6">
+            <ShoppingBag className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-500 mb-2">Nenhuma venda registrada</h3>
+            <p className="text-gray-400">Suas vendas aparecerão aqui quando você começar a vender.</p>
           </div>
-          
-          {/* Y-axis labels - simplified */}
-          <div className="absolute left-0 top-0 h-full w-12 hidden md:flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>{formatCurrency(maxValue)}</span>
-            <span>{formatCurrency(maxValue * 0.5)}</span>
-            <span>{formatCurrency(0)}</span>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
