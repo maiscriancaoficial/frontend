@@ -294,22 +294,22 @@ const CepSearch = () => {
 
 // Categorias para o menu
 const categories = [
-  { name: 'Novidades', href: '/categoria/novidades' },
-  { name: 'Lançamentos', href: '/categoria/lancamentos' },
-  { name: 'Aventuras Mágicas', href: '/categoria/aventura' },
-  { name: 'Contos de Fadas', href: '/categoria/contos-de-fadas' },
-  { name: 'Mundo dos Animais', href: '/categoria/animais' },
-  { name: 'Livros Educativos', href: '/categoria/educativos' },
-  { name: 'Personalizados', href: '/categoria/personalizados' },
-  { name: 'Alfabetização', href: '/categoria/alfabetizacao' },
-  { name: 'Para Colorir', href: '/categoria/para-colorir' },
-  { name: 'Infantil', href: '/categoria/infantil' },
-  { name: 'Primeiros Passos', href: '/categoria/primeiros-passos' },
-  { name: 'Natureza', href: '/categoria/natureza' },
-  { name: 'Ciências', href: '/categoria/ciencias' },
-  { name: 'Matemática', href: '/categoria/matematica' },
-  { name: 'Idiomas', href: '/categoria/idiomas' },
-  { name: 'Artes', href: '/categoria/artes' },
+  { name: 'Novidades', href: '/categoria-livro/novidades' },
+  { name: 'Lançamentos', href: '/categoria-livro/lancamentos' },
+  { name: 'Aventuras Mágicas', href: '/categoria-livro/aventura' },
+  { name: 'Contos de Fadas', href: '/categoria-livro/contos-de-fadas' },
+  { name: 'Mundo dos Animais', href: '/categoria-livro/animais' },
+  { name: 'Livros Educativos', href: '/categoria-livro/educativos' },
+  { name: 'Personalizados', href: '/categoria-livro/personalizados' },
+  { name: 'Alfabetização', href: '/categoria-livro/alfabetizacao' },
+  { name: 'Para Colorir', href: '/categoria-livro/para-colorir' },
+  { name: 'Infantil', href: '/categoria-livro/infantil' },
+  { name: 'Primeiros Passos', href: '/categoria-livro/primeiros-passos' },
+  { name: 'Natureza', href: '/categoria-livro/natureza' },
+  { name: 'Ciências', href: '/categoria-livro/ciencias' },
+  { name: 'Matemática', href: '/categoria-livro/matematica' },
+  { name: 'Idiomas', href: '/categoria-livro/idiomas' },
+  { name: 'Artes', href: '/categoria-livro/artes' },
 ];
 
 // Componente principal do Header

@@ -11,7 +11,7 @@ const rotasPublicas = [
   '/blog',
   `/carrinho`,
   `/checkout`,
-  `/categoria/.*`,
+  `/categoria-livro/.*`,
   '/blog/.*',
   '/contato',
   '/sobre',

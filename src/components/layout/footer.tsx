@@ -227,11 +227,11 @@ const footerLinks = {
     { label: 'Personalização', href: '/personalizacao' },
   ],
   produtos: [
-    { label: 'Aventuras Mágicas', href: '/categoria/aventura' },
-    { label: 'Contos de Fadas', href: '/categoria/contos-de-fadas' },
-    { label: 'Mundo dos Animais', href: '/categoria/animais' },
-    { label: 'Livros Educativos', href: '/categoria/educativos' },
-    { label: 'Livros Personalizados', href: '/categoria/personalizados' },
+    { label: 'Aventuras Mágicas', href: '/categoria-livro/aventura' },
+    { label: 'Contos de Fadas', href: '/categoria-livro/contos-de-fadas' },
+    { label: 'Mundo dos Animais', href: '/categoria-livro/animais' },
+    { label: 'Livros Educativos', href: '/categoria-livro/educativos' },
+    { label: 'Livros Personalizados', href: '/categoria-livro/personalizados' },
   ],
   politicas: [
     { label: 'Termos e Condições', href: '/termos-e-condicoes' },
@@ -278,13 +278,12 @@ export function Footer() {
             <div className="flex items-center mb-4">
               <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded flex items-center">
                 <Building2 className="w-3 h-3 mr-1" />
-                CNPJ: 12.345.678/0001-90
+                CNPJ: 00.000.000/0001-00
               </span>
             </div>
             
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Fornecemos arranjos MCis frescos, cestas de presente e produtos exclusivos para tornar seus momentos especiais ainda mais memoráveis. Com mais de 10 anos de experiência, entregamos em todo o Brasil com qualidade e pontualidade.
-            </p>
+            Criamos livros infantis digitais e personalizados, onde a criança vira personagem e vive aventuras incríveis dentro da história. Tudo é feito com carinho para tornar cada momento de leitura único e especial. Com mais de 10 anos de experiência, entregamos diversão e imaginação para crianças de todo o Brasil.            </p>
             
             {/* Redes sociais */}
             <div className="flex space-x-3 mt-4">
@@ -547,7 +546,7 @@ export function Footer() {
                 © {currentYear} Mais Criança. Todos os direitos reservados.
               </p>
               <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                CNPJ: 12.345.678/0001-90 | Av. das Crianças, 456 - Jardim Encanto, São Paulo - SP
+                CNPJ: 00.000.000/0001-00 | Av. das kids, 46 - Jardim Paulista, São Paulo - SP
               </p>
             </div>
             

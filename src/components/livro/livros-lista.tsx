@@ -83,12 +83,7 @@ export function LivrosLista({ livros, emptyMessage = "Nenhum livro encontrado." 
                   className={`h-4 w-4 ${favoritos[livro.id] ? 'fill-[#ff0080] text-[#ff0080]' : 'text-[#ff0080] hover:fill-[#ff0080]'}`} 
                 />
               </button>
-              
-              {livro.precoPromocional && (
-                <Badge className="absolute top-3 left-3 bg-[#ff0080] hover:bg-[#ff0080]/90 rounded-full px-3 py-1 text-xs">
-                  Oferta
-                </Badge>
-              )}
+
             </div>
             <CardContent className="pt-4 flex-grow">
               <div className="mb-2">
@@ -102,30 +97,14 @@ export function LivrosLista({ livros, emptyMessage = "Nenhum livro encontrado." 
               <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2">{livro.descricao}</p>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <div className="w-full flex justify-between items-center">
-                <div className="flex items-end gap-1">
-                  {livro.precoPromocional ? (
-                    <>
-                      <span className="text-lg font-bold text-[#ff0080]">
-                        {formatCurrency(livro.precoPromocional)}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                        {formatCurrency(livro.preco)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {formatCurrency(livro.preco)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center text-xs font-medium text-[#27b99a] dark:text-[#27b99a] bg-[#27b99a]/10 dark:bg-[#27b99a]/20 px-2 py-1 rounded-full">
+              <div className="w-full flex justify-center items-center">
+                <div className="flex items-center text-xs font-medium text-[#27b99a] dark:text-[#27b99a] bg-[#27b99a]/10 dark:bg-[#27b99a]/20 px-3 py-2 rounded-full">
                   <BookOpen className="h-3 w-3 mr-1" />
-                  <span>Digital</span>
+                  <span>Livro Digital</span>
                 </div>
               </div>
               <Link 
-                href={`/categoria/${livro.categorias && livro.categorias[0]?.categoria.slug || 'livros'}/livro/${livro.slug}`}
+                href={`/categoria-livro/${livro.categorias && livro.categorias[0]?.categoria.slug || 'livros'}/livro/${livro.slug}`}
                 className="w-full"
               >
                 <Button 

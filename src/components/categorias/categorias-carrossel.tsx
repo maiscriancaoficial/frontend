@@ -250,7 +250,7 @@ export default function CategoriasCarrossel({
     <section className="py-16">
       <div className="container mx-auto px-4">
         <div className="mb-10">
-          <Badge className="mb-3 bg-[#ff0080]/10 hover:bg-[#ff0080]/10 text-[#ff0080] dark:bg-[#ff0080]/20 dark:text-[#ff0080]">
+          <Badge className="mb-3 bg-[#ff0080]/10 hover:bg-[#ff0080]/10 text-[#ff0080] dark:bg-[#ff0080]/20 dark:text-[#ff0080] rounded-full">
             {badgeTexto}
           </Badge>
           
@@ -308,7 +308,7 @@ export default function CategoriasCarrossel({
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
               >
                 <Link
-                  href={`/categoria/${categoria.slug}`}
+                  href={`/categoria-livro/${categoria.slug}`}
                   className={cn(
                     "flex flex-col items-center justify-center w-28 h-28 md:w-32 md:h-32 p-4 rounded-[20px] transition-all", 
                     "bg-white dark:bg-gray-800 shadow-sm hover:shadow-md",

@@ -11,8 +11,7 @@ import {
   Wallet, 
   BookOpen,
   RotateCcw,
-  User,
-  LogOut
+  User
 } from 'lucide-react'
 
 interface NavigationData {
@@ -175,18 +174,6 @@ export default function NavigationConta() {
           </Link>
         )
       })}
-      
-      {/* Separator */}
-      <div className="h-6 w-px bg-gray-200 mx-2"></div>
-      
-      {/* Logout Button */}
-      <Link
-        href="/api/auth/logout"
-        className="flex items-center space-x-2 px-4 py-3 rounded-2xl font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 whitespace-nowrap group"
-      >
-        <LogOut className="h-5 w-5" />
-        <span className="text-sm">Sair</span>
-      </Link>
     </nav>
   )
 }

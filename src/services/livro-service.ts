@@ -38,8 +38,7 @@ export async function getLivrosDestaque(limite?: number): Promise<LivroProps[]> 
   try {
     const livros = await prisma.livro.findMany({
       where: { 
-        ativo: true,
-        emDestaque: true 
+        ativo: true
       },
       take: limite || undefined,
       select: {

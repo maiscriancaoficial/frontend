@@ -50,7 +50,7 @@ export default async function ProdutoPage(
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/categoria/${primeiraCategoria.slug}`}>
+                    <Link href={`/categoria-livro/${primeiraCategoria.slug}`}>
                       {primeiraCategoria.titulo}
                     </Link>
                   </BreadcrumbLink>

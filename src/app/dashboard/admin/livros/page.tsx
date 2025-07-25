@@ -51,7 +51,7 @@ export default function AdminLivrosPage() {
       case 'previa':
         // Aqui vamos redirecionar para a página de prévia do livro
         const categoriaSlug = livro.categoriasLink?.[0]?.categoria?.slug || 'personalizado';
-        router.push(`/categoria/${categoriaSlug}/livro/${livro.id}/previa-livro`);
+        router.push(`/categoria-livro/${categoriaSlug}/livro/${livro.id}/previa-livro`);
         break;
       default:
         console.log(`Ação não reconhecida: ${acao}`);
@@ -123,7 +123,7 @@ export default function AdminLivrosPage() {
   const handleVisualizarParaPrevia = () => {
     if (livroSelecionado) {
       const categoriaSlug = livroSelecionado.categoriasLink?.[0]?.categoria?.slug || 'personalizado';
-      router.push(`/categoria/${categoriaSlug}/livro/${livroSelecionado.id}/previa-livro`);
+      router.push(`/categoria-livro/${categoriaSlug}/livro/${livroSelecionado.id}/previa-livro`);
     }
   };
 

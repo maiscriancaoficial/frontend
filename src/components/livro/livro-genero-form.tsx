@@ -30,7 +30,7 @@ export function LivroGeneroForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (genero && nome.trim()) {
-      router.push(`/categoria/${categoriaSlug}/livro/${slug}/personalizar-avatar?genero=${genero}&nome=${encodeURIComponent(nome)}`);
+      router.push(`/categoria-livro/${categoriaSlug}/livro/${slug}/personalizar-avatar?genero=${genero}&nome=${encodeURIComponent(nome)}`);
     }
   };
 

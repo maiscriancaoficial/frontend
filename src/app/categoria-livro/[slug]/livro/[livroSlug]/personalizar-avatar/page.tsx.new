@@ -1,0 +1,350 @@
+'use client';
+
+import React, { useState, useEffect, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Wand2, Loader2, ShoppingCart, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import Image from 'next/image';
+
+import { AvatarPreview } from './components/avatar-preview';
+import { AvatarCustomizer } from './components/avatar-customizer';
+import { AvatarConfig } from './types';
+import { getAvatarOptions, salvarAvatarPersonalizado } from './services/avatar-service';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+// Componente de fallback para carregamento
+function LoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[300px] p-6">
+      <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+      <p className="text-gray-600 text-center">Carregando...</p>
+    </div>
+  );
+}
+
+// Componente de fallback para imagens
+function ImageFallback() {
+  return (
+    <div className="flex items-center justify-center h-full w-full bg-gray-100 rounded-lg p-4">
+      <div className="text-gray-400 text-center">
+        <Loader2 className="h-8 w-8 mx-auto animate-spin mb-2" />
+        <p>Carregando imagem...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PersonalizarAvatarPage() {
+  const params = useParams();
+  const router = useRouter();
+  const livroSlug = params.livroSlug as string;
+  const categoriaSlug = params.slug as string;
+  const [nome, genero] = (params.genero_nome as string)?.split('&nome=') || ['', ''];
+  
+  const [loading, setLoading] = useState(false);
+  const [avatarOptions, setAvatarOptions] = useState(null);
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({
+    nome: '',
+    tipo: 'menino',
+    pele: 'clara',
+    olhos: undefined,
+    cabelo: undefined,
+    corCabelo: undefined,
+    roupa: undefined,
+    corRoupa: undefined,
+    shorts: undefined,
+    oculos: undefined,
+    chapeu: undefined,
+    bone: undefined,
+    aderecos: []
+  });
+
+  // Carregar opções para personalização do avatar
+  useEffect(() => {
+    const options = getAvatarOptions();
+    setAvatarOptions(options);
+  }, []);
+
+  // Restaurar avatar do localStorage se existir
+  useEffect(() => {
+    try {
+      const savedAvatar = localStorage.getItem(`avatar_${livroSlug}`);
+      if (savedAvatar) {
+        const parsed = JSON.parse(savedAvatar);
+        setAvatarConfig(current => ({
+          ...parsed,
+          nome: nome || parsed.nome,
+          tipo: (genero === 'menino' || genero === 'menina') ? genero : parsed.tipo
+        }));
+        toast.success("Avatar carregado!", {
+          description: "Seu avatar anterior foi restaurado"
+        });
+      } else if (nome || genero) {
+        setAvatarConfig(current => ({
+          ...current,
+          nome: nome || current.nome,
+          tipo: (genero === 'menino' || genero === 'menina') ? genero : current.tipo
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao restaurar avatar do localStorage:', error);
+    }
+  }, [livroSlug, nome, genero]);
+
+  // Função para gerar avatar aleatório
+  const generateRandomAvatar = () => {
+    if (!avatarOptions) return;
+    
+    setLoading(true);
+    setTimeout(() => {
+      const options = avatarOptions;
+      
+      const randomPele = options.peles[Math.floor(Math.random() * options.peles.length)]?.id;
+      const randomCabelo = options.cabelos[Math.floor(Math.random() * options.cabelos.length)]?.id;
+      const randomCorCabelo = options.coresCabelo[Math.floor(Math.random() * options.coresCabelo.length)]?.id;
+      const randomOlhos = options.olhos[Math.floor(Math.random() * options.olhos.length)]?.id;
+      const randomRoupa = options.roupas[Math.floor(Math.random() * options.roupas.length)]?.id;
+      const randomCorRoupa = options.coresRoupa[Math.floor(Math.random() * options.coresRoupa.length)]?.id;
+      const randomShorts = options.shorts[Math.floor(Math.random() * options.shorts.length)]?.id;
+      
+      toast.success("Avatar aleatório gerado!", {
+        description: "Personalize-o como desejar ou gere outro!"
+      });
+      
+      setAvatarConfig(current => ({
+        ...current,
+        pele: randomPele,
+        cabelo: randomCabelo,
+        corCabelo: randomCorCabelo,
+        olhos: randomOlhos,
+        roupa: randomRoupa,
+        corRoupa: randomCorRoupa,
+        shorts: randomShorts
+      }));
+      
+      setLoading(false);
+    }, 600);
+  };
+
+  // Função para atualizar a configuração do avatar
+  const updateAvatarConfig = (newConfig: Partial<AvatarConfig>) => {
+    setAvatarConfig(current => ({
+      ...current,
+      ...newConfig
+    }));
+  };
+
+  // Verifica se a configuração do avatar é válida para salvar
+  const isConfigValid = () => {
+    return Boolean(
+      avatarConfig.nome &&
+      avatarConfig.tipo && 
+      avatarConfig.pele && 
+      avatarConfig.cabelo && 
+      avatarConfig.olhos
+    );
+  };
+
+  // Função para salvar avatar
+  const handleSalvarAvatar = async () => {
+    try {
+      setLoading(true);
+      
+      localStorage.setItem('avatarConfig', JSON.stringify(avatarConfig));
+      localStorage.setItem(`avatar_${livroSlug}`, JSON.stringify(avatarConfig));
+      
+      toast.success("Avatar salvo com sucesso!", {
+        description: "Seu avatar foi personalizado!"
+      });
+      
+      setLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar avatar localmente:', error);
+      toast.error("Erro ao salvar avatar", {
+        description: "Houve um problema ao salvar suas configurações"
+      });
+      setLoading(false);
+      return true; // Retorna true mesmo com erro para continuar a navegação
+    }
+  };
+
+  // Adicionar ao carrinho
+  const handleAddToCart = async () => {
+    if (!isConfigValid()) return;
+    
+    setLoading(true);
+    try {
+      // Salvamos o avatar primeiro
+      await handleSalvarAvatar();
+      
+      // Aqui seria a lógica para adicionar ao carrinho
+      // Por enquanto, apenas mostramos um toast
+      setTimeout(() => {
+        toast.success("Adicionado ao carrinho!", {
+          description: "O livro personalizado foi adicionado ao seu carrinho"
+        });
+        setLoading(false);
+      }, 800);
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+      toast.error("Erro ao adicionar ao carrinho", {
+        description: "Não foi possível adicionar o item ao carrinho"
+      });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-500 via-blue-500 to-blue-600 overflow-x-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute top-96 -right-20 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-32 left-20 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+      
+      {/* Top Navigation Bar */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 flex items-center justify-between px-6 py-4 bg-white/10 backdrop-blur-sm"
+      >
+        <Link 
+          href={`/categoria/${categoriaSlug}/livro/${livroSlug}`}
+          className="text-white hover:text-gray-100 flex items-center gap-1 transition-all"
+        >
+          <ArrowLeft size={18} />
+          <span>Voltar</span>
+        </Link>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={generateRandomAvatar}
+          className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium flex items-center gap-2 hover:bg-white/30 transition-all"
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 size={16} />}
+          <span>Gerar Avatar Aleatório</span>
+        </motion.button>
+      </motion.div>
+
+      <h1 className="text-center text-white text-2xl md:text-3xl font-bold py-6 relative z-10">
+        Crie um personagem único que representará {avatarConfig.nome || nome || "seu filho"} na história.
+      </h1>
+
+      {/* Main Content - 60/40 Split */}
+      <div className="flex flex-col lg:flex-row w-full relative z-10">
+        {/* Preview Column - 60% */}
+        <div className="w-full lg:w-[60%] p-4 lg:p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="h-full"
+          >
+            <Card className="h-full bg-white/95 backdrop-blur-sm border-none shadow-xl overflow-hidden">
+              <CardContent className="p-6 flex flex-col items-center justify-center">
+                <h2 className="text-xl font-bold mb-6 text-gray-800 self-start">Prévia do Avatar</h2>
+                <div className="w-full h-full flex items-center justify-center">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <AvatarPreview 
+                      config={avatarConfig}
+                      fallback={<ImageFallback />}
+                    />
+                  </Suspense>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+        
+        {/* Customizer Column - 40% */}
+        <div className="w-full lg:w-[40%] p-4 lg:p-8 lg:pl-0">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="h-full"
+          >
+            <Card className="h-full bg-white/95 backdrop-blur-sm border-none shadow-xl overflow-hidden">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold mb-6 text-gray-800">Personalização</h2>
+                <Suspense fallback={<LoadingFallback />}>
+                  <AvatarCustomizer 
+                    config={avatarConfig} 
+                    onChange={updateAvatarConfig}
+                    avatarOptions={avatarOptions}
+                  />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Bottom Action Buttons */}
+      <motion.div 
+        className="fixed bottom-0 left-0 right-0 p-4 bg-white/10 backdrop-blur-md flex flex-col sm:flex-row gap-4 justify-between"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <div className="flex gap-4">
+          <Link href={`/categoria/${categoriaSlug}/livro/${livroSlug}`}>
+            <Button
+              variant="outline"
+              className="rounded-full py-6 px-6 bg-white/70 hover:bg-white/80 border-none text-gray-700 font-medium"
+            >
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Voltar
+            </Button>
+          </Link>
+          
+          <Button
+            onClick={handleAddToCart}
+            disabled={!isConfigValid() || loading}
+            className="rounded-full py-6 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>Adicionando...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                <span>Adicionar ao Carrinho</span>
+              </div>
+            )}
+          </Button>
+        </div>
+        
+        <Link href={`/categoria/${categoriaSlug}/livro/${livroSlug}/previa-livro`}>
+          <Button
+            disabled={!isConfigValid() || loading}
+            className="rounded-full py-6 px-6 bg-[#27b99a] hover:bg-[#27b99a]/90 text-white font-medium w-full sm:w-auto"
+            onClick={handleSalvarAvatar}
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>Salvando...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>PRONTINHO? SIGA PARA O LIVRO</span>
+                <ChevronRight className="h-5 w-5" />
+              </div>
+            )}
+          </Button>
+        </Link>
+      </motion.div>
+    </div>
+  );
+}
