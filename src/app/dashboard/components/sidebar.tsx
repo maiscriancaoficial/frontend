@@ -187,7 +187,7 @@ export function Sidebar({ className, userRole = 'ADMIN' }: { className?: string,
             </Link>
           </div>
           
-          {/* Links de navegação */}
+          {/* Links de navegaçãso */}
           <div className="flex-1 py-6 px-4 space-y-3">  {/* Aumento do espaçamento vertical entre itens */}
             {filteredNavItems.map((item) => (
               <Link 
