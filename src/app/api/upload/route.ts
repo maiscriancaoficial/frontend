@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,32 +34,68 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Criar diretório se não existir
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'produtos');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
+    // Verificar se Vercel Blob está configurado
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      // Fallback para desenvolvimento local
+      try {
+        const { writeFile, mkdir } = await import('fs/promises');
+        const { join } = await import('path');
+        const { existsSync } = await import('fs');
+        
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'produtos');
+        if (!existsSync(uploadDir)) {
+          await mkdir(uploadDir, { recursive: true });
+        }
+
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const extension = file.name.split('.').pop();
+        const fileName = `${timestamp}-${randomString}.${extension}`;
+        const filePath = join(uploadDir, fileName);
+
+        await writeFile(filePath, buffer);
+        const publicUrl = `/uploads/produtos/${fileName}`;
+
+        return NextResponse.json({
+          success: true,
+          url: publicUrl,
+          message: 'Arquivo enviado com sucesso (local)'
+        });
+      } catch (error) {
+        console.error('Erro no upload local:', error);
+        return NextResponse.json(
+          { error: 'Erro no upload local. Configure o Vercel Blob para produção.' },
+          { status: 500 }
+        );
+      }
     }
 
-    // Gerar nome único para o arquivo
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = file.name.split('.').pop();
-    const fileName = `${timestamp}-${randomString}.${extension}`;
-    const filePath = join(uploadDir, fileName);
+    try {
+      // Gerar nome único para o arquivo
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const extension = file.name.split('.').pop();
+      const fileName = `produtos/${timestamp}-${randomString}.${extension}`;
 
-    // Salvar arquivo
-    await writeFile(filePath, buffer);
+      // Upload para Vercel Blob
+      const blob = await put(fileName, buffer, {
+        access: 'public',
+        contentType: file.type,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        url: blob.url,
+        message: 'Arquivo enviado com sucesso para Vercel Blob'
+      });
 
-    // Retornar URL pública
-    const publicUrl = `/uploads/produtos/${fileName}`;
-
-    return NextResponse.json({
-      success: true,
-      url: publicUrl,
-      fileName,
-      size: file.size,
-      type: file.type
-    });
+    } catch (blobError) {
+      console.error('Erro no Vercel Blob:', blobError);
+      return NextResponse.json(
+        { error: 'Erro no upload para Vercel Blob' },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     console.error('Erro no upload:', error);
