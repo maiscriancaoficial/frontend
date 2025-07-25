@@ -5,14 +5,20 @@ import slugify from 'slugify';
 // GET - Listar categorias
 export async function GET() {
   try {
-    const categorias = await prisma.categoria.findMany({
+    const categoriasRaw = await prisma.categoria.findMany({
       orderBy: { titulo: 'asc' },
       include: {
         _count: {
-          select: { produtosLink: true }
+          select: { produtosLink: true, livrosLink: true }
         }
       }
     });
+
+    // Mapear titulo para nome para compatibilidade com frontend
+    const categorias = categoriasRaw.map(categoria => ({
+      ...categoria,
+      nome: categoria.titulo
+    }));
 
     return NextResponse.json({
       success: true,
@@ -50,13 +56,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar categoria
-    const categoria = await prisma.categoria.create({
+    const categoriaRaw = await prisma.categoria.create({
       data: {
         titulo: data.nome.trim(),
         slug,
         descricao: data.descricao?.trim() || null
       }
     });
+
+    // Mapear titulo para nome para compatibilidade
+    const categoria = {
+      ...categoriaRaw,
+      nome: categoriaRaw.titulo
+    };
 
     return NextResponse.json({
       success: true,

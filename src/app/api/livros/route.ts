@@ -175,9 +175,9 @@ export async function POST(request: NextRequest) {
       // Criar relacionamentos com categorias
       if (categorias && Array.isArray(categorias)) {
         await tx.livroCategoria.createMany({
-          data: categorias.map((categoriaId: string) => ({
+          data: categorias.map((categoria: any) => ({
             livroId: novoLivro.id,
-            categoriaId
+            categoriaId: typeof categoria === 'string' ? categoria : categoria.categoriaId
           }))
         });
       }
@@ -185,9 +185,9 @@ export async function POST(request: NextRequest) {
       // Criar relacionamentos com tags
       if (tags && Array.isArray(tags)) {
         await tx.livroTag.createMany({
-          data: tags.map((tagId: string) => ({
+          data: tags.map((tag: any) => ({
             livroId: novoLivro.id,
-            tagId
+            tagId: typeof tag === 'string' ? tag : tag.tagId
           }))
         });
       }

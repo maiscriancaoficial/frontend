@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Upload, FileText, Hash, Settings } from 'lucide-react';
+import { X, Upload, FileText, Hash, Settings, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,6 +47,7 @@ export function ModalPostagem({
   const [tags, setTags] = useState<TagProps[]>([]);
   const [novaTag, setNovaTag] = useState('');
   const [abaAtiva, setAbaAtiva] = useState('conteudo');
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   // Preencher o formulário quando editar uma postagem existente
   useEffect(() => {
@@ -116,16 +117,48 @@ export function ModalPostagem({
     setTags(tags.filter(tag => tag.id !== idTag));
   };
 
-  // Simular upload de imagem
-  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload de imagem para Vercel Blob
+  const handleImagemChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Em uma implementação real, você faria o upload para um servidor
-    // Por enquanto, vamos apenas criar uma URL temporária
-    const tempURL = URL.createObjectURL(file);
-    setFotoCapa(tempURL);
-    setFotoCapaPreview(tempURL);
+    try {
+      setUploadingImage(true);
+      
+      // Criar preview local imediatamente
+      const tempURL = URL.createObjectURL(file);
+      setFotoCapaPreview(tempURL);
+
+      // Fazer upload para Vercel Blob
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const imageUrl = data.url;
+        
+        // Atualizar com URL real
+        setFotoCapa(imageUrl);
+        setFotoCapaPreview(imageUrl);
+      } else {
+        console.error('Erro no upload:', response.statusText);
+        // Em caso de erro, manter preview local
+        setFotoCapa(tempURL);
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      // Em caso de erro, usar preview local
+      const tempURL = URL.createObjectURL(file);
+      setFotoCapa(tempURL);
+      setFotoCapaPreview(tempURL);
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   // Manipular o envio do formulário
@@ -296,15 +329,22 @@ export function ModalPostagem({
                       id="fotoCapa" 
                       accept="image/*" 
                       onChange={handleImagemChange} 
-                      className="hidden" 
+                      className="hidden"
+                      disabled={uploadingImage}
                     />
                     <label 
                       htmlFor="fotoCapa" 
-                      className="cursor-pointer flex flex-col items-center justify-center w-full h-full"
+                      className={`cursor-pointer flex flex-col items-center justify-center w-full h-full ${
+                        uploadingImage ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
-                      <Upload className="h-12 w-12 text-[#27b99a] mb-3" />
+                      {uploadingImage ? (
+                        <Loader2 className="h-12 w-12 text-[#27b99a] mb-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-12 w-12 text-[#27b99a] mb-3" />
+                      )}
                       <span className="text-sm text-[#27b99a] dark:text-[#27b99a] text-center font-medium">
-                        Clique para fazer upload <br/>
+                        {uploadingImage ? 'Fazendo upload...' : 'Clique para fazer upload'} <br/>
                         <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
                           (PNG, JPG, GIF até 2MB)
                         </span>

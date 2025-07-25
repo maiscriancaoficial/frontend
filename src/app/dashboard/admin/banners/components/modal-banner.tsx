@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { BannerDados } from "../page";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 
 interface ModalBannerProps {
   isOpen: boolean;
@@ -52,6 +52,10 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
   const [previewDesktop, setPreviewDesktop] = useState<string>('');
   const [previewMobile, setPreviewMobile] = useState<string>('');
   
+  // Estados de loading para uploads
+  const [uploadingDesktop, setUploadingDesktop] = useState(false);
+  const [uploadingMobile, setUploadingMobile] = useState(false);
+  
   // Quando o modal abrir com um banner para editar
   useEffect(() => {
     if (bannerParaEditar) {
@@ -81,19 +85,72 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
     setFormulario(prev => ({ ...prev, ativo: checked }));
   };
 
-  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>, tipo: 'desktop' | 'mobile') => {
+  const handleImagemChange = async (e: React.ChangeEvent<HTMLInputElement>, tipo: 'desktop' | 'mobile') => {
     const file = e.target.files?.[0];
     if (file) {
-      // Em produção, aqui faria o upload para um serviço de armazenamento
-      // Para fins de demonstração, vamos apenas simular com URL.createObjectURL
-      const preview = URL.createObjectURL(file);
-      
-      if (tipo === 'desktop') {
-        setPreviewDesktop(preview);
-        setFormulario(prev => ({ ...prev, fotoDesktop: preview }));
-      } else {
-        setPreviewMobile(preview);
-        setFormulario(prev => ({ ...prev, fotoMobile: preview }));
+      try {
+        // Ativar loading
+        if (tipo === 'desktop') {
+          setUploadingDesktop(true);
+        } else {
+          setUploadingMobile(true);
+        }
+
+        // Criar preview local imediatamente
+        const preview = URL.createObjectURL(file);
+        
+        if (tipo === 'desktop') {
+          setPreviewDesktop(preview);
+        } else {
+          setPreviewMobile(preview);
+        }
+
+        // Fazer upload para Vercel Blob
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const imageUrl = data.url;
+          
+          // Atualizar formulário com URL real
+          if (tipo === 'desktop') {
+            setFormulario(prev => ({ ...prev, fotoDesktop: imageUrl }));
+          } else {
+            setFormulario(prev => ({ ...prev, fotoMobile: imageUrl }));
+          }
+        } else {
+          console.error('Erro no upload:', response.statusText);
+          // Em caso de erro, manter o preview local
+          if (tipo === 'desktop') {
+            setFormulario(prev => ({ ...prev, fotoDesktop: preview }));
+          } else {
+            setFormulario(prev => ({ ...prev, fotoMobile: preview }));
+          }
+        }
+      } catch (error) {
+        console.error('Erro no upload:', error);
+        // Em caso de erro, usar preview local
+        const preview = URL.createObjectURL(file);
+        if (tipo === 'desktop') {
+          setPreviewDesktop(preview);
+          setFormulario(prev => ({ ...prev, fotoDesktop: preview }));
+        } else {
+          setPreviewMobile(preview);
+          setFormulario(prev => ({ ...prev, fotoMobile: preview }));
+        }
+      } finally {
+        // Desativar loading
+        if (tipo === 'desktop') {
+          setUploadingDesktop(false);
+        } else {
+          setUploadingMobile(false);
+        }
       }
     }
   };
@@ -221,9 +278,15 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
                 ) : (
                   <label htmlFor="upload-desktop" className="cursor-pointer w-full h-40 flex flex-col items-center justify-center">
                     <div className="bg-white dark:bg-gray-700 p-3 rounded-full mb-2">
-                      <ImageIcon className="h-6 w-6 text-emerald-500" />
+                      {uploadingDesktop ? (
+                        <Loader2 className="h-6 w-6 text-emerald-500 animate-spin" />
+                      ) : (
+                        <ImageIcon className="h-6 w-6 text-emerald-500" />
+                      )}
                     </div>
-                    <span className="text-sm font-medium">Clique para fazer upload</span>
+                    <span className="text-sm font-medium">
+                      {uploadingDesktop ? 'Fazendo upload...' : 'Clique para fazer upload'}
+                    </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Recomendado: 1920x600px</span>
                     <input
                       type="file"
@@ -231,6 +294,7 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
                       className="sr-only"
                       accept="image/*"
                       onChange={(e) => handleImagemChange(e, 'desktop')}
+                      disabled={uploadingDesktop}
                     />
                   </label>
                 )}
@@ -264,9 +328,15 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
                 ) : (
                   <label htmlFor="upload-mobile" className="cursor-pointer w-full h-40 flex flex-col items-center justify-center">
                     <div className="bg-white dark:bg-gray-700 p-3 rounded-full mb-2">
-                      <Upload className="h-6 w-6 text-gray-400" />
+                      {uploadingMobile ? (
+                        <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
+                      ) : (
+                        <Upload className="h-6 w-6 text-gray-400" />
+                      )}
                     </div>
-                    <span className="text-sm font-medium">Clique para fazer upload</span>
+                    <span className="text-sm font-medium">
+                      {uploadingMobile ? 'Fazendo upload...' : 'Clique para fazer upload'}
+                    </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Recomendado: 768x500px</span>
                     <input
                       type="file"
@@ -274,6 +344,7 @@ export function ModalBanner({ isOpen, onClose, bannerParaEditar, onSalvar, salva
                       className="sr-only"
                       accept="image/*"
                       onChange={(e) => handleImagemChange(e, 'mobile')}
+                      disabled={uploadingMobile}
                     />
                   </label>
                 )}
