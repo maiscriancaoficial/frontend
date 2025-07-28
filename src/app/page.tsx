@@ -43,7 +43,7 @@ interface CategoriaDB {
   updatedAt: Date;
 }
 
-// Função comentada - modelo Categoria não existe no schema atual
+
 // async function getCategorias(): Promise<CategoriaDestaque[]> {
 //   try {
 //     // Busca as categorias no banco de dados
@@ -234,7 +234,7 @@ async function CarrosselNetflixSection() {
   return <ProdutosCarrosselNetflix 
     titulo="Descubra Novidades"
     subtitulo="Os produtos mais recentes da nossa floricultura"
-    badgeTexto="Lançamentos"
+    badgeTexto="Novidades"
     produtos={produtos}
   />;
 }

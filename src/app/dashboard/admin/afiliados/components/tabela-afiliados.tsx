@@ -351,7 +351,7 @@ export function TabelaAfiliados({
                             <input 
                               readOnly
                               className="flex-1 text-xs p-2 border border-amber-200 dark:border-amber-800 rounded-md bg-amber-50/50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200"
-                              value={`https://floriculturanaweb.com/ref/${afiliado.codigoAfiliado}`}
+                              value={`https://maiscrianca.com/ref/${afiliado.codigoAfiliado}`}
                             />
                             <Button
                               size="sm"
@@ -359,7 +359,7 @@ export function TabelaAfiliados({
                               className="border border-amber-200 hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-md"
                               onClick={() => {
                                 navigator.clipboard.writeText(
-                                  `https://floriculturanaweb.com/ref/${afiliado.codigoAfiliado}`
+                                  `https://maiscrianca.com/ref/${afiliado.codigoAfiliado}`
                                 );
                               }}
                             >

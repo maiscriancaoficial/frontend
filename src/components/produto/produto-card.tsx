@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
@@ -58,9 +58,44 @@ interface ProdutoCardProps {
 }
 
 export function ProdutoCard({ produto, variant = 'default' }: ProdutoCardProps) {
-  const [favorito, setFavorito] = useState(false);
-  const [adicionadoCarrinho, setAdicionadoCarrinho] = useState(false);
+  const [favoritos, setFavoritos] = useState<{ [key: string]: boolean }>({});
+  const [adicionandoCarrinho, setAdicionandoCarrinho] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  
+  // Carregar favoritos do localStorage
+  useEffect(() => {
+    try {
+      const favoritosStorage = JSON.parse(localStorage.getItem('favoritos') || '[]');
+      const favoritosMap: { [key: string]: boolean } = {};
+      
+      // Verificar se é um array, se não for, converter ou limpar
+      if (Array.isArray(favoritosStorage)) {
+        favoritosStorage.forEach((fav: any) => {
+          if (fav && fav.id) {
+            favoritosMap[fav.id] = true;
+          }
+        });
+      } else if (typeof favoritosStorage === 'object' && favoritosStorage !== null) {
+        // Se for objeto antigo, converter para array e salvar
+        const favoritosArray: any[] = [];
+        Object.keys(favoritosStorage).forEach(id => {
+          if (favoritosStorage[id]) {
+            favoritosMap[id] = true;
+            // Não temos dados completos do objeto antigo, então só salvamos o ID
+          }
+        });
+        // Limpar localStorage antigo
+        localStorage.setItem('favoritos', JSON.stringify(favoritosArray));
+      }
+      
+      setFavoritos(favoritosMap);
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+      // Em caso de erro, limpar localStorage e usar estado vazio
+      localStorage.setItem('favoritos', '[]');
+      setFavoritos({});
+    }
+  }, []);
   
   // Formatar preço
   const formatarPreco = (valor: number) => {
@@ -83,31 +118,93 @@ export function ProdutoCard({ produto, variant = 'default' }: ProdutoCardProps) 
   const temDesconto = desconto !== null;
   const estaEmEstoque = produto.estoque > 0;
   
-  // Animação para adicionar ao carrinho
-  const handleAddToCart = () => {
-    setAdicionadoCarrinho(true);
-    // Importar dinamicamente o serviço de carrinho para evitar erros de SSR
-    import('@/services/carrinho-service').then(({ useCarrinhoStore }) => {
-      const { adicionarAoCarrinho } = useCarrinhoStore.getState();
-      // Adaptar o produto para o formato esperado pelo carrinho
-      const produtoAdaptado = {
-        ...produto,
-        id: Number(produto.id), // Convertendo ID de string para number
-        ativo: produto.ativo ?? true, // Garantindo que o campo ativo existe
-        categorias: produto.categorias ? 
-          produto.categorias.map(c => c.categoria.titulo) : [] // Adaptando o formato das categorias
-      };
-      adicionarAoCarrinho(produtoAdaptado as any, 1);
-    });
-    setTimeout(() => setAdicionadoCarrinho(false), 2000);
+  // Adicionar ao carrinho
+  const handleAddToCart = async () => {
+    if (adicionandoCarrinho) return;
+    
+    setAdicionandoCarrinho(true);
+    
+    try {
+      // Adicionar ao localStorage do carrinho
+      const carrinhoAtual = JSON.parse(localStorage.getItem('carrinho') || '[]');
+      const itemExistente = carrinhoAtual.find((item: any) => item.id === produto.id);
+      
+      if (itemExistente) {
+        itemExistente.quantidade += 1;
+      } else {
+        carrinhoAtual.push({
+          id: produto.id,
+          titulo: produto.titulo,
+          preco: produto.precoPromocional || produto.preco,
+          fotoPrincipal: produto.fotoPrincipal,
+          slug: produto.slug,
+          quantidade: 1,
+          categoria: produto.categorias?.[0]?.categoria || { titulo: 'Geral', slug: 'geral' }
+        });
+      }
+      
+      localStorage.setItem('carrinho', JSON.stringify(carrinhoAtual));
+      
+      // Disparar evento para atualizar drawer do carrinho
+      window.dispatchEvent(new Event('carrinho-atualizado'));
+      
+      // Toast de sucesso
+      const { toast } = await import('sonner');
+      toast.success(`${produto.titulo} adicionado ao carrinho!`);
+      
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao adicionar produto ao carrinho');
+    } finally {
+      setAdicionandoCarrinho(false);
+    }
   };
   
   // Alternar favorito
-  const handleToggleFavorito = (e: React.MouseEvent) => {
+  const handleToggleFavorito = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setFavorito(!favorito);
-    // Aqui iria a lógica para salvar favorito no backend
+    
+    try {
+      const favoritosAtuais = JSON.parse(localStorage.getItem('favoritos') || '[]');
+      const jaEhFavorito = favoritosAtuais.some((fav: any) => fav.id === produto.id);
+      
+      if (jaEhFavorito) {
+        // Remover dos favoritos
+        const novosFavoritos = favoritosAtuais.filter((fav: any) => fav.id !== produto.id);
+        localStorage.setItem('favoritos', JSON.stringify(novosFavoritos));
+        setFavoritos(prev => ({ ...prev, [produto.id]: false }));
+        
+        const { toast } = await import('sonner');
+        toast.success(`${produto.titulo} removido dos favoritos`);
+      } else {
+        // Adicionar aos favoritos
+        const novoFavorito = {
+          id: produto.id,
+          titulo: produto.titulo,
+          preco: produto.precoPromocional || produto.preco,
+          fotoPrincipal: produto.fotoPrincipal,
+          slug: produto.slug,
+          categoria: produto.categorias?.[0]?.categoria || { titulo: 'Geral', slug: 'geral' }
+        };
+        
+        favoritosAtuais.push(novoFavorito);
+        localStorage.setItem('favoritos', JSON.stringify(favoritosAtuais));
+        setFavoritos(prev => ({ ...prev, [produto.id]: true }));
+        
+        const { toast } = await import('sonner');
+        toast.success(`${produto.titulo} adicionado aos favoritos!`);
+      }
+      
+      // Disparar evento para atualizar drawer dos favoritos
+      window.dispatchEvent(new Event('favoritos-atualizado'));
+      
+    } catch (error) {
+      console.error('Erro ao alterar favorito:', error);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao alterar favorito');
+    }
   };
   
   return (
@@ -148,11 +245,11 @@ export function ProdutoCard({ produto, variant = 'default' }: ProdutoCardProps) 
                   size="icon"
                   className={cn(
                     "h-8 w-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm",
-                    favorito ? "text-red-500 hover:text-red-600" : "text-gray-500 hover:text-gray-700"
+                    favoritos[produto.id] ? "text-red-500 hover:text-red-600" : "text-gray-500 hover:text-gray-700"
                   )}
                   onClick={handleToggleFavorito}
                 >
-                  <Heart className={cn("h-4 w-4", favorito ? "fill-red-500" : "")} />
+                  <Heart className={cn("h-4 w-4", favoritos[produto.id] ? "fill-red-500" : "")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -201,7 +298,7 @@ export function ProdutoCard({ produto, variant = 'default' }: ProdutoCardProps) 
         </div>
 
         {/* Imagem do produto */}
-        <Link href={`/produto/${produto.slug}`} className="relative aspect-square w-full overflow-hidden rounded-2xl mb-4">
+        <Link href={`/produto/${produto.slug}`} className="relative aspect-square w-full overflow-hidden rounded-3xl mb-4">
           <div className="relative w-full h-full">
             <Image
               src={produto.fotoPrincipal || '/produtos/produto-placeholder.jpg'}
@@ -401,8 +498,8 @@ export function ProdutoCard({ produto, variant = 'default' }: ProdutoCardProps) 
                     className="absolute top-0 right-0 rounded-full flex items-center justify-center text-[#ff0080] hover:text-[#ff0080] hover:bg-[#ff0080]/10 dark:text-[#ff0080] dark:hover:bg-[#ff0080]/20"
                     onClick={handleToggleFavorito}
                   >
-                    <Heart className={cn("h-4 w-4 mr-2", favorito ? "fill-red-500 text-red-500" : "")} />
-                    {favorito ? "Favoritado" : "Favoritar"}
+                    <Heart className={cn("h-4 w-4 mr-2", favoritos[produto.id] ? "fill-red-500 text-red-500" : "")} />
+                    {favoritos[produto.id] ? "Favoritado" : "Favoritar"}
                   </Button>
                   
                   <Link href={`/produto/${produto.slug}`}>

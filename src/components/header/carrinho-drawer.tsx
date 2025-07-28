@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,45 +27,82 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-
-interface ProdutoCarrinho {
-  id: string;
-  titulo: string;
-  preco: number;
-  precoPromocional?: number | null;
-  quantidade: number;
-  imagem: string;
-  slug: string;
-}
+import { useCarrinhoStore, type ItemCarrinho } from '@/services/carrinho-service';
 
 interface CarrinhoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  produtos: ProdutoCarrinho[];
-  onUpdateQuantidade?: (id: string, quantidade: number) => void;
-  onRemoveItem?: (id: string) => void;
+}
+
+// Funções auxiliares para trabalhar com diferentes tipos de itens
+function getTitulo(item: ItemCarrinho): string {
+  return item.produto.titulo || '';
+}
+
+function getPreco(item: ItemCarrinho): number {
+  return item.produto.preco || 0;
+}
+
+function getPrecoPromocional(item: ItemCarrinho): number | null {
+  return item.produto.precoPromocional || null;
+}
+
+function getImagem(item: ItemCarrinho): string {
+  return item.produto.fotoPrincipal || '/images/placeholder.jpg';
+}
+
+function getId(item: ItemCarrinho): string {
+  return item.produto.id?.toString() || '';
+}
+
+function getSlug(item: ItemCarrinho): string {
+  return item.produto.slug || '';
+}
+
+function getUniqueKey(item: ItemCarrinho, index: number): string {
+  const baseId = getId(item);
+  if (item.personalizacao) {
+    return `${baseId}-${item.personalizacao.nomePersonagem}-${item.personalizacao.genero}-${index}`;
+  }
+  return `${baseId}-${index}`;
 }
 
 export function CarrinhoDrawer({
   isOpen,
-  onClose,
-  produtos = [],
-  onUpdateQuantidade,
-  onRemoveItem
+  onClose
 }: CarrinhoDrawerProps) {
+  const { 
+    itens: produtos, 
+    desconto: valorDesconto,
+    atualizarQuantidade,
+    removerDoCarrinho,
+    aplicarCupom,
+    calcularSubtotal
+  } = useCarrinhoStore();
+  
   const [cupom, setCupom] = useState('');
   const [cep, setCep] = useState('');
   const [carregandoFrete, setCarregandoFrete] = useState(false);
   const [valorFrete, setValorFrete] = useState<number | null>(null);
   const [cupomAplicado, setCupomAplicado] = useState(false);
-  const [valorDesconto, setValorDesconto] = useState(0);
   const [secaoAtiva, setSecaoAtiva] = useState<'itens' | 'entrega' | 'pagamento'>('itens');
-
-  // Calcular subtotal
-  const subtotal = produtos.reduce((total, produto) => {
-    const preco = produto.precoPromocional ?? produto.preco;
-    return total + (preco * produto.quantidade);
-  }, 0);
+  
+  // Calcular subtotal usando o store
+  const subtotal = calcularSubtotal();
+  
+  // Atualizar quantidade do produto
+  const onUpdateQuantidade = (id: number, quantidade: number) => {
+    if (quantidade <= 0) {
+      removerDoCarrinho(id);
+    } else {
+      atualizarQuantidade(id, quantidade);
+    }
+  };
+  
+  // Remover item do carrinho
+  const onRemoveItem = (id: number) => {
+    removerDoCarrinho(id);
+  };
 
   // Total com frete e desconto
   const total = subtotal + (valorFrete || 0) - valorDesconto;
@@ -82,22 +119,25 @@ export function CarrinhoDrawer({
     }
   };
 
-  const handleQuantidade = (id: string, acao: 'aumentar' | 'diminuir') => {
-    const produto = produtos.find(p => p.id === id);
-    if (!produto || !onUpdateQuantidade) return;
+  const handleQuantidade = (id: number, acao: 'aumentar' | 'diminuir') => {
+    const produto = produtos.find(p => p.produto.id === id);
+    if (!produto) return;
 
     const novaQuantidade = acao === 'aumentar' 
       ? produto.quantidade + 1 
       : Math.max(1, produto.quantidade - 1);
     
-    onUpdateQuantidade(id, novaQuantidade);
+    // Se a nova quantidade for 0, remover o item
+    if (novaQuantidade <= 0) {
+      onRemoveItem(id);
+    } else {
+      onUpdateQuantidade(id, novaQuantidade);
+    }
   };
 
   const handleAplicarCupom = () => {
-    // Simulando aplicação de cupom
-    if (cupom.toUpperCase() === 'FLORES10') {
-      const valorDoDesconto = subtotal * 0.1; // 10% de desconto
-      setValorDesconto(valorDoDesconto);
+    const sucesso = aplicarCupom(cupom);
+    if (sucesso) {
       setCupomAplicado(true);
     }
   };
@@ -145,7 +185,7 @@ export function CarrinhoDrawer({
                 <div>
                   <h2 className="text-lg font-semibold flex items-center gap-2">
                     Seu Carrinho
-                    <Badge className="bg-white/30 hover:bg-white/40 text-white text-xs">
+                    <Badge className="bg-white/30 hover:bg-white/40 text-white text-xs rounded-full">
                       {produtos.length}
                     </Badge>
                   </h2>
@@ -174,7 +214,7 @@ export function CarrinhoDrawer({
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", delay: 0.2 }}
                   >
-                    <div className="w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <div className="w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4">
                       <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600" />
                     </div>
                   </motion.div>
@@ -210,7 +250,7 @@ export function CarrinhoDrawer({
                       {/* Lista de produtos */}
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium text-gray-700 dark:text-gray-200">Seus produtos</h3>
-                        <Badge variant="outline" className="text-xs font-normal bg-[#f29798]/10 text-[#f29798] border-[#f29798]/20 px-2">
+                        <Badge variant="outline" className="text-xs font-normal bg-[#f29798]/10 text-[#f29798] border-[#f29798]/20 px-2 rounded-full">
                           {produtos.length} {produtos.length === 1 ? 'item' : 'itens'}
                         </Badge>
                       </div>
@@ -218,17 +258,17 @@ export function CarrinhoDrawer({
                       <div className="space-y-3">
                         {produtos.map((produto, index) => (
                           <motion.div 
-                            key={produto.id}
+                            key={getUniqueKey(produto, index)}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.05 * index }}
-                            className="group flex gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow"
+                            className="group flex gap-3 p-3 bg-white dark:bg-gray-800 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow"
                           >
                             {/* Imagem */}
-                            <div className="relative h-20 w-20 bg-white dark:bg-gray-700 rounded-xl overflow-hidden shrink-0 border border-gray-100 dark:border-gray-700 group-hover:border-[#f29798]/30 transition-colors">
+                            <div className="relative h-20 w-20 bg-white dark:bg-gray-700 rounded-2xl overflow-hidden shrink-0 border border-gray-100 dark:border-gray-700 group-hover:border-[#f29798]/30 transition-colors">
                               <Image
-                                src={produto.imagem || '/placeholder-product.png'}
-                                alt={produto.titulo}
+                                src={getImagem(produto)}
+                                alt={getTitulo(produto)}
                                 fill
                                 className="object-cover"
                                 sizes="80px"
@@ -237,18 +277,23 @@ export function CarrinhoDrawer({
 
                             {/* Informações */}
                             <div className="flex-grow flex flex-col">
-                              <Link href={`/produto/${produto.slug}`} className="font-medium text-sm mb-1 hover:text-[#27b99a] dark:hover:text-[#27b99a] line-clamp-2 transition-colors">
-                                {produto.titulo}
+                              <Link href={`/produto/${getSlug(produto)}`} className="font-medium text-sm mb-1 hover:text-[#27b99a] dark:hover:text-[#27b99a] line-clamp-2 transition-colors">
+                                {getTitulo(produto)}
                               </Link>
+                              {produto.personalizacao && (
+                                <p className="text-xs text-gray-500 mb-1">
+                                  Personagem: {produto.personalizacao.nomePersonagem} ({produto.personalizacao.genero})
+                                </p>
+                              )}
                               
                               <div className="mt-auto flex items-center justify-between gap-2">
                                 <div>
                                   <div className="text-sm font-semibold text-[#27b99a] dark:text-[#27b99a]">
-                                    {formatarPreco(produto.precoPromocional ?? produto.preco)}
+                                    {formatarPreco(getPrecoPromocional(produto) || getPreco(produto))}
                                   </div>
-                                  {produto.precoPromocional && (
+                                  {getPrecoPromocional(produto) && (
                                     <div className="text-xs text-gray-500 dark:text-gray-400 line-through">
-                                      {formatarPreco(produto.preco)}
+                                      {formatarPreco(getPreco(produto))}
                                     </div>
                                   )}
                                 </div>
@@ -259,7 +304,7 @@ export function CarrinhoDrawer({
                                       variant="ghost" 
                                       size="icon" 
                                       className="h-8 w-8 rounded-l-full border-r border-gray-200 dark:border-gray-700 hover:bg-[#27b99a]/10 transition-colors duration-200"
-                                      onClick={() => handleQuantidade(produto.id, 'diminuir')}
+                                      onClick={() => handleQuantidade(produto.produto.id, 'diminuir')}
                                     >
                                       <Minus className="h-3 w-3" />
                                     </Button>
@@ -270,7 +315,7 @@ export function CarrinhoDrawer({
                                       variant="ghost" 
                                       size="icon" 
                                       className="h-8 w-8 rounded-r-full border-l border-gray-200 dark:border-gray-700 hover:bg-[#27b99a]/10 transition-colors duration-200"
-                                      onClick={() => handleQuantidade(produto.id, 'aumentar')}
+                                      onClick={() => handleQuantidade(produto.produto.id, 'aumentar')}
                                     >
                                       <Plus className="h-3 w-3" />
                                     </Button>
@@ -284,7 +329,7 @@ export function CarrinhoDrawer({
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => onRemoveItem && onRemoveItem(produto.id)}
+                                onClick={() => onRemoveItem && onRemoveItem(produto.produto.id)}
                                 className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all duration-200 hover:shadow-md"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -311,28 +356,26 @@ export function CarrinhoDrawer({
                       </div>
                       <span className="text-gray-800 dark:text-gray-200">Cupom de Desconto</span>
                       {cupomAplicado && (
-                        <Badge className="ml-auto bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 font-normal text-xs">
+                        <Badge className="ml-auto bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 font-normal text-xs rounded-full">
                           <Check className="w-3 h-3 mr-1" /> Aplicado
                         </Badge>
                       )}
                     </h3>
 
-                    <div className="flex w-full shadow-md rounded-full overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                      <div className="flex-1 relative">
-                        <Input
-                          placeholder="LIVROS10"
-                          value={cupom}
-                          onChange={(e) => setCupom(e.target.value)}
-                          disabled={cupomAplicado}
-                          className="pr-20 border-r-0 rounded-r-none rounded-l-full bg-white dark:bg-gray-800 py-6 text-sm focus:ring-[#27b99a]/30 focus:border-[#27b99a]"
-                        />
-                      </div>
+                    <div className="flex w-full rounded-full border border-gray-200 dark:border-gray-600 overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                      <Input
+                        placeholder="LIVROS10"
+                        value={cupom}
+                        onChange={(e) => setCupom(e.target.value)}
+                        disabled={cupomAplicado}
+                        className="flex-1 border-0 rounded-l-full bg-white dark:bg-gray-800 py-6 text-sm focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
                       
                       <Button 
                         onClick={handleAplicarCupom}
                         disabled={!cupom || cupomAplicado}
                         className={cn(
-                          "rounded-r-full py-6 px-5 shadow-md hover:shadow-lg transition-shadow duration-300 font-medium",
+                          "rounded-r-full py-6 px-5 font-medium border-0",
                           !cupomAplicado
                             ? "bg-[#ff0080] hover:bg-[#ff0080]/90 text-white"
                             : "bg-[#27b99a] hover:bg-[#27b99a]/90 text-white cursor-not-allowed"

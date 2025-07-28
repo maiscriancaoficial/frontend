@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ShoppingCart, Heart, Share2, Minus, Plus, Check, Star, StarHalf, Package, Zap
+  ShoppingCart, Heart, Share2, Minus, Plus, Check, Star, StarHalf, Package, Zap, Loader2
 } from 'lucide-react';
 import { ProdutoDetalhado } from '@/services/produto-service-single';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,8 +17,85 @@ interface ProdutoInfoProps {
 
 export function ProdutoInfo({ produto }: ProdutoInfoProps) {
   const [quantidade, setQuantidade] = useState(1);
-  const [adicionadoAoCarrinho, setAdicionadoAoCarrinho] = useState(false);
-  const [favorito, setFavorito] = useState(false);
+  const [adicionandoCarrinho, setAdicionandoCarrinho] = useState(false);
+  const [favoritos, setFavoritos] = useState<{ [key: string]: boolean }>({});
+
+  // Carregar favoritos do localStorage
+  useEffect(() => {
+    try {
+      const favoritosStorage = JSON.parse(localStorage.getItem('favoritos') || '[]');
+      const favoritosMap: { [key: string]: boolean } = {};
+      
+      // Verificar se é um array, se não for, converter ou limpar
+      if (Array.isArray(favoritosStorage)) {
+        favoritosStorage.forEach((fav: any) => {
+          if (fav && fav.id) {
+            favoritosMap[fav.id] = true;
+          }
+        });
+      } else if (typeof favoritosStorage === 'object' && favoritosStorage !== null) {
+        // Se for objeto antigo, converter para array e salvar
+        const favoritosArray: any[] = [];
+        Object.keys(favoritosStorage).forEach(id => {
+          if (favoritosStorage[id]) {
+            favoritosMap[id] = true;
+            // Não temos dados completos do objeto antigo, então só salvamos o ID
+          }
+        });
+        // Limpar localStorage antigo
+        localStorage.setItem('favoritos', JSON.stringify(favoritosArray));
+      }
+      
+      setFavoritos(favoritosMap);
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+      // Em caso de erro, limpar localStorage e usar estado vazio
+      localStorage.setItem('favoritos', '[]');
+      setFavoritos({});
+    }
+  }, []);
+
+  const alternarFavorito = async () => {
+    try {
+      const favoritosAtuais = JSON.parse(localStorage.getItem('favoritos') || '[]');
+      const jaEhFavorito = favoritosAtuais.some((fav: any) => fav.id === produto.id);
+      
+      if (jaEhFavorito) {
+        // Remover dos favoritos
+        const novosFavoritos = favoritosAtuais.filter((fav: any) => fav.id !== produto.id);
+        localStorage.setItem('favoritos', JSON.stringify(novosFavoritos));
+        setFavoritos(prev => ({ ...prev, [produto.id]: false }));
+        
+        const { toast } = await import('sonner');
+        toast.success(`${produto.titulo} removido dos favoritos!`);
+      } else {
+        // Adicionar aos favoritos
+        const novoFavorito = {
+          id: produto.id,
+          titulo: produto.titulo,
+          preco: produto.precoPromocional || produto.preco,
+          fotoPrincipal: produto.fotoPrincipal,
+          slug: produto.slug,
+          categoria: produto.categorias?.[0]?.categoria || { titulo: 'Geral', slug: 'geral' }
+        };
+        
+        favoritosAtuais.push(novoFavorito);
+        localStorage.setItem('favoritos', JSON.stringify(favoritosAtuais));
+        setFavoritos(prev => ({ ...prev, [produto.id]: true }));
+        
+        const { toast } = await import('sonner');
+        toast.success(`${produto.titulo} adicionado aos favoritos!`);
+      }
+      
+      // Disparar evento para atualizar drawer de favoritos
+      window.dispatchEvent(new Event('favoritos-atualizado'));
+      
+    } catch (error) {
+      console.error('Erro ao alterar favorito:', error);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao alterar favorito');
+    }
+  };
   
   // Formatar preço para exibição
   const formatarPreco = (preco: number) => {
@@ -56,30 +133,86 @@ export function ProdutoInfo({ produto }: ProdutoInfoProps) {
     }
   };
   
-  // Adicionar ao carrinho usando o serviço
-  const adicionarAoCarrinho = () => {
-    if (produto.estoque > 0) {
-      setAdicionadoAoCarrinho(true);
-      // Importar dinamicamente o serviço de carrinho para evitar erros de SSR
-      import('@/services/carrinho-service').then(({ useCarrinhoStore }) => {
-        const { adicionarAoCarrinho } = useCarrinhoStore.getState();
-        adicionarAoCarrinho(produto, quantidade);
-      });
-      setTimeout(() => {
-        setAdicionadoAoCarrinho(false);
-      }, 2000);
+  // Adicionar ao carrinho
+  const adicionarAoCarrinho = async () => {
+    if (adicionandoCarrinho || produto.estoque <= 0) return;
+    
+    setAdicionandoCarrinho(true);
+    
+    try {
+      // Adicionar ao localStorage do carrinho
+      const carrinhoAtual = JSON.parse(localStorage.getItem('carrinho') || '[]');
+      const itemExistente = carrinhoAtual.find((item: any) => item.id === produto.id);
+      
+      if (itemExistente) {
+        itemExistente.quantidade += quantidade;
+      } else {
+        carrinhoAtual.push({
+          id: produto.id,
+          titulo: produto.titulo,
+          preco: produto.precoPromocional || produto.preco,
+          fotoPrincipal: produto.fotoPrincipal,
+          slug: produto.slug,
+          quantidade: quantidade,
+          categoria: produto.categorias?.[0]?.categoria || { titulo: 'Geral', slug: 'geral' }
+        });
+      }
+      
+      localStorage.setItem('carrinho', JSON.stringify(carrinhoAtual));
+      
+      // Disparar evento para atualizar drawer do carrinho
+      window.dispatchEvent(new Event('carrinho-atualizado'));
+      
+      // Toast de sucesso
+      const { toast } = await import('sonner');
+      toast.success(`${quantidade}x ${produto.titulo} adicionado ao carrinho!`);
+      
+      // Sucesso - produto adicionado
+      
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao adicionar produto ao carrinho');
+    } finally {
+      setAdicionandoCarrinho(false);
     }
   };
   
   // Comprar agora - adiciona ao carrinho e redireciona para o checkout
-  const comprarAgora = () => {
-    if (produto.estoque > 0) {
-      // Importar dinamicamente o serviço de carrinho
-      import('@/services/carrinho-service').then(({ useCarrinhoStore }) => {
-        const { adicionarAoCarrinho } = useCarrinhoStore.getState();
-        adicionarAoCarrinho(produto, quantidade);
-        window.location.href = '/carrinho';
-      });
+  const comprarAgora = async () => {
+    if (produto.estoque <= 0) return;
+    
+    try {
+      // Adicionar ao localStorage do carrinho
+      const carrinhoAtual = JSON.parse(localStorage.getItem('carrinho') || '[]');
+      const itemExistente = carrinhoAtual.find((item: any) => item.id === produto.id);
+      
+      if (itemExistente) {
+        itemExistente.quantidade += quantidade;
+      } else {
+        carrinhoAtual.push({
+          id: produto.id,
+          titulo: produto.titulo,
+          preco: produto.precoPromocional || produto.preco,
+          fotoPrincipal: produto.fotoPrincipal,
+          slug: produto.slug,
+          quantidade: quantidade,
+          categoria: produto.categorias?.[0]?.categoria || { titulo: 'Geral', slug: 'geral' }
+        });
+      }
+      
+      localStorage.setItem('carrinho', JSON.stringify(carrinhoAtual));
+      
+      // Disparar evento para atualizar drawer do carrinho
+      window.dispatchEvent(new Event('carrinho-atualizado'));
+      
+      // Redirecionar para carrinho
+      window.location.href = '/carrinho';
+      
+    } catch (error) {
+      console.error('Erro ao comprar agora:', error);
+      const { toast } = await import('sonner');
+      toast.error('Erro ao processar compra');
     }
   };
   
@@ -216,23 +349,18 @@ export function ProdutoInfo({ produto }: ProdutoInfoProps) {
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn(
-                      "rounded-full w-12 h-12 border-2 transition-all",
-                      favorito ? "border-[#ff0080] text-[#ff0080] bg-[#ff0080]/10 dark:bg-[#ff0080]/20" : "border-gray-200 dark:border-gray-700"
-                    )}
-                    onClick={() => setFavorito(prev => !prev)}
+                    onClick={alternarFavorito}
+                    className={`p-3 rounded-full border-2 transition-all duration-300 ${
+                      favoritos[produto.id] 
+                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
-                    <Heart
-                      className={cn(
-                        "h-5 w-5 transition-all",
-                        favorito ? "fill-[#ff0080] text-[#ff0080] scale-110" : "scale-100"
-                      )}
-                    />
-                    <span className="sr-only">Favoritar</span>
+                    <Heart className={`w-6 h-6 ${favoritos[produto.id] ? 'fill-current' : ''}`} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</p>
+                  <p>{favoritos[produto.id] ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -258,11 +386,11 @@ export function ProdutoInfo({ produto }: ProdutoInfoProps) {
         <div className="grid grid-cols-2 gap-3">
           <Button 
             onClick={adicionarAoCarrinho}
-            disabled={produto.estoque === 0}
+            disabled={produto.estoque === 0 || adicionandoCarrinho}
             className="bg-[#ff0080] hover:bg-[#ff0080]/90 text-white relative overflow-hidden h-14 rounded-full shadow-lg shadow-[#ff0080]/20 disabled:opacity-70 disabled:shadow-none"
           >
             <AnimatePresence mode="wait">
-              {adicionadoAoCarrinho ? (
+              {false ? (
                 <motion.div
                   key="added"
                   initial={{ opacity: 0, y: 20 }}
@@ -281,9 +409,17 @@ export function ProdutoInfo({ produto }: ProdutoInfoProps) {
                   exit={{ opacity: 0, y: 20 }}
                   className="flex items-center justify-center text-sm md:text-base whitespace-nowrap px-2"
                 >
-                  <ShoppingCart className="mr-1 md:mr-2 h-4 md:h-5 w-4 md:w-5" />
-                  <span className="hidden sm:inline">Adicionar ao</span>
-                  <span>Carrinho</span>
+                  {adicionandoCarrinho ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Adicionando...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5 mr-2" />
+                      Adicionar ao Carrinho
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

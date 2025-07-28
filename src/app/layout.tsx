@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Mais criança | Flores, Buquês e Cestas para Presente",
   description: "Flores frescas, buquês, cestas de café da manhã e presentes especiais com entrega em todo o Brasil. Compre online com entrega rápida e garantia de qualidade.",
   keywords: "floricultura, flores, buquês, cestas de presente, entrega de flores, flores online, presente, decoração MCl",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

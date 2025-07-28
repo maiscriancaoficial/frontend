@@ -3,7 +3,7 @@
 import { AvatarConfig } from "../types";
 
 // Função para salvar o avatar personalizado
-export async function salvarAvatarPersonalizado(livroId: string, avatarConfig: AvatarConfig): Promise<boolean> {
+export async function salvarAvatarPersonalizado(livroId: string, avatarConfig: AvatarConfig): Promise<{success: boolean; avatarId?: string; error?: string}> {
   try {
     const response = await fetch('/api/avatar/personalizar', {
       method: 'POST',
@@ -17,14 +17,25 @@ export async function salvarAvatarPersonalizado(livroId: string, avatarConfig: A
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao salvar o avatar');
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || 'Erro ao salvar o avatar'
+      };
     }
 
     const data = await response.json();
-    return data.success;
+    return {
+      success: data.success || false,
+      avatarId: data.avatarId,
+      error: data.error
+    };
   } catch (error) {
     console.error('Erro ao salvar avatar:', error);
-    return false;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    };
   }
 }
 

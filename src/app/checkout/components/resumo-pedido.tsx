@@ -100,12 +100,21 @@ export function ResumoPedido({ frete }: ResumoPedidoProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium truncate">{item.produto.titulo}</h4>
-                  <div className="flex justify-between items-center mt-1.5">
-                    <p className="text-gray-500 text-xs dark:text-gray-400 flex items-center gap-1">
-                      <span className="inline-block bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 p-0.5 px-1.5 rounded-full">{item.quantidade} x</span> R$ {item.produto.preco.toFixed(2)}
-                    </p>
-                    <p className="font-medium text-sm bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-                      R$ {(item.quantidade * item.produto.preco).toFixed(2)}
+                  {item.personalizacao && (
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs px-2 py-0.5 bg-[#ff0080]/10 text-[#ff0080] border-[#ff0080]/20">
+                          Personalizado
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {item.personalizacao.nomePersonagem} ({item.personalizacao.genero})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-1">
+                    <p className="text-xs text-gray-500">
+                      Qtd: {item.quantidade} × R$ {item.precoUnitario.toFixed(2)}
                     </p>
                   </div>
                 </div>

@@ -216,19 +216,34 @@ export function ModalAvatarNovo({
   
   // Configuração inicial baseada no avatar
   useEffect(() => {
-    if (avatar) {
+    console.log('🔄 useEffect executado - avatar:', avatar);
+    console.log('🔄 useEffect executado - aberto:', aberto);
+    
+    if (avatar && aberto) {
+      console.log('✅ Carregando dados do avatar para edição:', avatar);
+      
+      // Verificar se a foto principal é base64 (não usar)
+      const isBase64 = avatar.fotoPrincipal?.startsWith('data:');
+      const fotoParaUsar = isBase64 ? '' : (avatar.fotoPrincipal || '');
+      
       form.reset({
         nome: avatar.nome || '',
         tipo: avatar.tipo || '',
         descricao: avatar.descricao || '',
-        fotoPrincipal: avatar.fotoPrincipal || '',
+        fotoPrincipal: fotoParaUsar,
         ativo: avatar.ativo ?? true,
       });
-      setImagemPreview(avatar.fotoPrincipal || null);
+      
+      // Só definir preview se não for base64
+      setImagemPreview(isBase64 ? null : (avatar.fotoPrincipal || null));
+      
+      if (isBase64) {
+        console.log('⚠️ Foto principal em base64 detectada, removendo para forçar novo upload');
+      }
       
       // Carregar elementos existentes do avatar
       if (avatar.elementos && avatar.elementos.length > 0) {
-        console.log('Carregando elementos do avatar:', avatar.elementos);
+        console.log('📦 Elementos encontrados no avatar:', avatar.elementos);
         
         // Resetar elementos
         const elementosCarregados = elementos.map(tab => ({ ...tab, elementos: [] }));
@@ -251,13 +266,16 @@ export function ModalAvatarNovo({
         
         setElementos(elementosCarregados);
       } else {
+        console.log('⚠️ Avatar não tem elementos, resetando...');
         // Resetar elementos se não houver
         setElementos(prev => prev.map(tab => ({ ...tab, elementos: [] })));
       }
-    } else {
+    } else if (aberto && !avatar) {
+      console.log('✨ Criando novo avatar, limpando formulário e elementos...');
+      
       form.reset({
         nome: '',
-        tipo: undefined,
+        tipo: 'MASCULINO',
         descricao: '',
         fotoPrincipal: '',
         ativo: true,
@@ -266,11 +284,18 @@ export function ModalAvatarNovo({
       // Resetar elementos para novo avatar
       setElementos(prev => prev.map(tab => ({ ...tab, elementos: [] })));
     }
-  }, [avatar, form]);
+  }, [avatar, aberto, form]);
   
   const onSubmit = async (values: AvatarFormValues) => {
     setSubmitting(true);
     try {
+      // Validar se a foto principal não é base64
+      if (values.fotoPrincipal && values.fotoPrincipal.startsWith('data:')) {
+        toast.error('Erro: Foto principal em formato inválido. Faça upload novamente.');
+        console.error('❌ Tentativa de enviar foto principal em base64:', values.fotoPrincipal.substring(0, 50) + '...');
+        return;
+      }
+      
       // Preparar dados do avatar com elementos
       const todosElementos = elementos.flatMap(tab => 
         tab.elementos.map(elemento => ({
@@ -306,16 +331,50 @@ export function ModalAvatarNovo({
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagemPreview(result);
-        form.setValue('fotoPrincipal', result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    
+    try {
+      // Upload real da imagem
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro no upload');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.url) {
+        throw new Error('Resposta inválida do servidor');
+      }
+      
+      console.log('✅ Upload da foto principal realizado:', data.url);
+      
+      // Definir preview e valor do formulário com a URL
+      setImagemPreview(data.url);
+      form.setValue('fotoPrincipal', data.url);
+      
+      toast.success('Foto carregada com sucesso!');
+      
+    } catch (error) {
+      console.error('❌ Erro no upload da foto:', error);
+      toast.error(`Erro no upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setUploadingPhoto(false);
+      // Limpar o input
+      event.target.value = '';
     }
   };
 
@@ -375,16 +434,33 @@ export function ModalAvatarNovo({
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
+                  disabled={uploadingPhoto}
                   className="hidden"
                   id="avatar-image"
                 />
                 <label
                   htmlFor="avatar-image"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition-colors"
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    uploadingPhoto 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                  }`}
                 >
-                  <Upload className="w-4 h-4" />
-                  Escolher Foto
+                  {uploadingPhoto ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                      Fazendo Upload...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Escolher Foto
+                    </>
+                  )}
                 </label>
+                <div className="text-xs text-gray-500 mt-1 text-center">
+                  📷 Foto principal do avatar
+                </div>
               </div>
             </div>
 

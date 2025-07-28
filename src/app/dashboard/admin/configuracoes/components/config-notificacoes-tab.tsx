@@ -50,7 +50,7 @@ export function ConfigNotificacoesTab() {
   
   // Estado para templates de email
   const [emailTemplate, setEmailTemplate] = useState('default');
-  const [emailRemetente, setEmailRemetente] = useState('contato@floriculturanaweb.com.br');
+  const [emailRemetente, setEmailRemetente] = useState('contato@maiscrianca.com.br');
   const [emailAssinatura, setEmailAssinatura] = useState('Equipe da Mais criança');
   
   const handleSubmit = (e: React.FormEvent) => {

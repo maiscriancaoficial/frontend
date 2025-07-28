@@ -5,6 +5,10 @@ import { MoreHorizontal, Edit, Trash2, Eye, ToggleLeft, ToggleRight, MapPin, Mai
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  Card,
+  CardContent
+} from '@/components/ui/card';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -45,7 +49,7 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
   };
 
   // Formatar data em pt-BR
-  const formatarData = (data?: Date) => {
+  const formatarData = (data?: Date | string) => {
     if (!data) return '—';
     
     return new Intl.DateTimeFormat('pt-BR', {
@@ -66,29 +70,30 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-[12px] shadow-sm border border-teal-100 dark:border-teal-900/50 overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-teal-50/70 dark:bg-teal-950/20">
-            <TableRow className="hover:bg-teal-50 dark:hover:bg-teal-950/30">
-              <TableHead className="w-[250px]">Cliente</TableHead>
-              <TableHead className="w-[180px]">Contato</TableHead>
-              <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead className="w-[120px]">Cadastro</TableHead>
-              <TableHead className="w-[120px]">Última Compra</TableHead>
-              <TableHead className="text-right">Compras</TableHead>
-              <TableHead className="text-right w-[80px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
+    <Card className="rounded-3xl border border-gray-100 dark:border-gray-800 transition-all duration-300 overflow-hidden">
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-gradient-to-r from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+              <TableRow className="border-b border-gray-100 dark:border-gray-800">
+                <TableHead className="w-[250px] font-semibold text-gray-900 dark:text-gray-100">Cliente</TableHead>
+                <TableHead className="w-[180px] font-semibold text-gray-900 dark:text-gray-100">Contato</TableHead>
+                <TableHead className="w-[120px] font-semibold text-gray-900 dark:text-gray-100">Status</TableHead>
+                <TableHead className="w-[120px] font-semibold text-gray-900 dark:text-gray-100">Cadastro</TableHead>
+                <TableHead className="w-[120px] font-semibold text-gray-900 dark:text-gray-100">Última Compra</TableHead>
+                <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100">Compras</TableHead>
+                <TableHead className="text-right w-[80px] font-semibold text-gray-900 dark:text-gray-100">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {clientes.map(cliente => (
               <>
                 <TableRow 
                   key={cliente.id} 
                   className={`
-                    border-b border-teal-100 dark:border-teal-900/30 group
-                    ${expandidos[cliente.id] ? 'bg-teal-50/70 dark:bg-teal-950/20' : ''}
-                    hover:bg-teal-50 dark:hover:bg-teal-950/20
+                    border-b border-gray-100 dark:border-gray-800 group transition-all duration-200
+                    ${expandidos[cliente.id] ? 'bg-gray-50/70 dark:bg-gray-900/50' : ''}
+                    hover:bg-gray-50 dark:hover:bg-gray-900/30
                   `}
                 >
                   {/* Cliente Nome */}
@@ -97,7 +102,7 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                       <div className={`
                         w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm
                         ${cliente.ativo 
-                          ? 'bg-gradient-to-br from-teal-500 to-teal-600' 
+                          ? 'bg-gradient-to-br from-[#27b99a] to-[#22a085]' 
                           : 'bg-gradient-to-br from-gray-400 to-gray-500'}
                       `}>
                         {cliente.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -106,28 +111,10 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                         <div className="font-medium flex items-center">
                           {cliente.nome}
                           {cliente.premium && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Crown size={14} className="ml-1 text-amber-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Cliente Premium</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Crown className="ml-1 w-3 h-3 text-amber-500" />
                           )}
                           {cliente.verificado && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <BadgeCheck size={14} className="ml-1 text-blue-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Email Verificado</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <BadgeCheck className="ml-1 w-3 h-3 text-blue-500" />
                           )}
                         </div>
                         {cliente.endereco?.cidade && (
@@ -158,14 +145,12 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                   
                   {/* Status */}
                   <TableCell>
-                    <Badge 
-                      className={`${
-                        cliente.ativo
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-400'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-                      } px-3 py-1 rounded-full text-xs`}
-                    >
-                      {cliente.ativo ? 'Ativo' : 'Inativo'}
+                    <Badge variant="outline" className={`rounded-full ${
+                      cliente.ativo 
+                        ? "bg-gradient-to-r from-[#27b99a]/10 to-[#ff0080]/10 text-[#27b99a] border-[#27b99a]/20" 
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700"
+                    }`}>
+                      {cliente.ativo ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
                   
@@ -226,32 +211,34 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                             <MoreHorizontal size={16} />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border-teal-100 dark:border-teal-900">
-                          <DropdownMenuItem 
-                            onClick={() => onEditar(cliente)}
-                            className="cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-300"
-                          >
-                            <Edit size={16} className="mr-2" /> Editar
+                        <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg">
+                          <DropdownMenuItem onClick={() => toggleExpandido(cliente.id)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            {expandidos[cliente.id] ? 'Ocultar detalhes' : 'Ver detalhes'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => onAlterarStatus(cliente.id)}
-                            className="cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-300"
-                          >
+                          <DropdownMenuItem onClick={() => onEditar(cliente)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onAlterarStatus(cliente.id)}>
                             {cliente.ativo ? (
                               <>
-                                <ToggleLeft size={16} className="mr-2" /> Desativar
+                                <ToggleLeft className="mr-2 h-4 w-4" />
+                                Desativar
                               </>
                             ) : (
                               <>
-                                <ToggleRight size={16} className="mr-2" /> Ativar
+                                <ToggleRight className="mr-2 h-4 w-4" />
+                                Ativar
                               </>
                             )}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => onExcluir(cliente.id)}
-                            className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                            onClick={() => onExcluir(cliente.id)} 
+                            className="text-red-600 focus:text-red-600"
                           >
-                            <Trash2 size={16} className="mr-2" /> Excluir
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -261,70 +248,43 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                 
                 {/* Linha expandida com detalhes */}
                 {expandidos[cliente.id] && (
-                  <TableRow className="bg-teal-50/30 dark:bg-teal-950/10">
-                    <TableCell colSpan={7} className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Dados pessoais */}
+                  <TableRow className="bg-gray-50/30 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800">
+                    <TableCell colSpan={7} className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Informações de contato */}
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-teal-700 dark:text-teal-400 mb-2">Dados do Cliente</h4>
-                          <div className="space-y-1 text-sm">
-                            <p><span className="text-gray-500 dark:text-gray-400">Nome: </span> {cliente.nome}</p>
+                          <h4 className="text-sm font-medium text-[#27b99a] dark:text-[#27b99a] mb-2">Informações de Contato</h4>
+                          <div className="space-y-2 text-sm">
                             <p><span className="text-gray-500 dark:text-gray-400">Email: </span> {cliente.email}</p>
                             {cliente.telefone && (
                               <p><span className="text-gray-500 dark:text-gray-400">Telefone: </span> {cliente.telefone}</p>
                             )}
-                            <p><span className="text-gray-500 dark:text-gray-400">Cadastro: </span> {formatarData(cliente.dataCadastro)}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge 
-                                variant="outline" 
-                                className={`
-                                  ${cliente.ativo 
-                                    ? 'border-green-300 text-green-700 dark:border-green-800 dark:text-green-400'
-                                    : 'border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-400'
-                                  }
-                                `}
-                              >
-                                {cliente.ativo ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                              
-                              {cliente.verificado && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400"
-                                >
-                                  Verificado
-                                </Badge>
-                              )}
-                              
-                              {cliente.premium && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-400"
-                                >
-                                  Premium
-                                </Badge>
-                              )}
-                            </div>
+                            {cliente.cpfCnpj && (
+                              <p><span className="text-gray-500 dark:text-gray-400">CPF/CNPJ: </span> {cliente.cpfCnpj}</p>
+                            )}
                           </div>
                         </div>
                         
                         {/* Endereço */}
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-teal-700 dark:text-teal-400 mb-2">Endereço</h4>
-                          {cliente.endereco && (cliente.endereco.rua || cliente.endereco.cidade) ? (
+                          <h4 className="text-sm font-medium text-[#27b99a] dark:text-[#27b99a] mb-2">Endereço</h4>
+                          {cliente.endereco ? (
                             <div className="space-y-1 text-sm">
                               {cliente.endereco.rua && (
                                 <p>
-                                  {cliente.endereco.rua}, {cliente.endereco.numero || 'S/N'}
-                                  {cliente.endereco.complemento && ` - ${cliente.endereco.complemento}`}
+                                  {cliente.endereco.rua}
+                                  {cliente.endereco.numero && `, ${cliente.endereco.numero}`}
                                 </p>
+                              )}
+                              {cliente.endereco.complemento && (
+                                <p>{cliente.endereco.complemento}</p>
                               )}
                               {cliente.endereco.bairro && (
                                 <p>{cliente.endereco.bairro}</p>
                               )}
                               {cliente.endereco.cidade && (
                                 <p>
-                                  {cliente.endereco.cidade} - {cliente.endereco.estado}
+                                  {cliente.endereco.cidade}, {cliente.endereco.estado}
                                 </p>
                               )}
                               {cliente.endereco.cep && (
@@ -338,7 +298,7 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                         
                         {/* Histórico de compras */}
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-teal-700 dark:text-teal-400 mb-2">Histórico</h4>
+                          <h4 className="text-sm font-medium text-[#27b99a] dark:text-[#27b99a] mb-2">Histórico</h4>
                           {cliente.totalCompras ? (
                             <div className="space-y-2 text-sm">
                               <p><span className="text-gray-500 dark:text-gray-400">Total de compras: </span> {cliente.totalCompras}</p>
@@ -357,7 +317,7 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                           variant="outline" 
                           size="sm"
                           onClick={() => onEditar(cliente)}
-                          className="rounded-full border-teal-300 text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-900/30"
+                          className="rounded-2xl border-[#27b99a] text-[#27b99a] hover:bg-[#27b99a] hover:text-white transition-all duration-300"
                         >
                           <Edit size={14} className="mr-1" /> Editar
                         </Button>
@@ -365,7 +325,7 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
                           variant="outline" 
                           size="sm"
                           onClick={() => onAlterarStatus(cliente.id)}
-                          className={`rounded-full ${
+                          className={`rounded-2xl transition-all duration-300 ${
                             cliente.ativo
                               ? 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400'
                               : 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400'
@@ -389,7 +349,8 @@ export function TabelaClientes({ clientes, onEditar, onAlterarStatus, onExcluir 
             ))}
           </TableBody>
         </Table>
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -37,7 +37,7 @@ export function LivroGeneroForm({
   const desconto = livroPrecoPromocional ? Math.round(((livroPreco - livroPrecoPromocional) / livroPreco) * 100) : 0;
 
   return (
-    <div className="w-full rounded-lg overflow-hidden bg-white shadow-md">
+    <div className="w-full rounded-3xl overflow-hidden bg-white shadow-md">
       <div className="flex flex-col lg:flex-row">
         {/* Coluna da capa (direita em desktop) */}
         <div className="lg:order-2 w-full lg:w-2/5 relative">

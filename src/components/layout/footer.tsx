@@ -24,6 +24,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 // Componente de Newsletter com validação
 const NewsletterSignup = () => {
@@ -31,6 +38,7 @@ const NewsletterSignup = () => {
   const [isValid, setIsValid] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const validateEmail = (email: string) => {
     return /\S+@\S+\.\S+/.test(email);
@@ -45,6 +53,7 @@ const NewsletterSignup = () => {
       setTimeout(() => {
         setIsSubmitting(false);
         setIsSubmitted(true);
+        setShowSuccessModal(true);
         setEmail('');
         
         // Reset após 3 segundos
@@ -114,7 +123,7 @@ const NewsletterSignup = () => {
                 setEmail(e.target.value);
                 setIsValid(true);
               }}
-              className={`pr-12 h-14 rounded-full px-6 border-[#27b99a]/30 focus-visible:ring-[#27b99a] focus-visible:border-[#27b99a] ${!isValid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              className={`pr-12 h-14 rounded-full px-6 border-[#27b99a]/30 focus-visible:ring-[#27b99a] focus-visible:border-[#27b99a] placeholder:text-white/70 text-white ${!isValid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
             {isSubmitted && (
               <span className="absolute inset-y-0 right-3 flex items-center text-green-600 dark:text-green-400">
@@ -141,6 +150,60 @@ const NewsletterSignup = () => {
           <p className="text-red-500 text-sm mt-2">Por favor, insira um e-mail válido.</p>
         )}
       </div>
+      
+      {/* Modal de Sucesso */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#27b99a] to-[#1c9f87]">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  delay: 0.1 
+                }}
+              >
+                <ShieldCheck className="h-10 w-10 text-white" />
+              </motion.div>
+            </div>
+            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+              Inscrição Realizada!
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400 mt-2">
+              Obrigado por se inscrever! Você receberá em breve um e-mail com seu cupom de 10% de desconto e as melhores novidades sobre nossos livros personalizados.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-6 flex flex-col gap-3">
+            <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  10% de desconto no primeiro livro
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  Cupom chegará em seu e-mail em alguns minutos
+                </p>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full bg-gradient-to-r from-[#27b99a] to-[#1c9f87] hover:from-[#1c9f87] hover:to-[#12756a] text-white rounded-full h-12 font-medium transition-all duration-300 transform hover:scale-105"
+            >
+              Continuar Navegando
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -214,16 +277,14 @@ const footerLinks = {
     { label: 'Quem Somos', href: '/quem-somos' },
     { label: 'Nossa História', href: '/nossa-historia' },
     { label: 'Blog', href: '/blog' },
-    { label: 'Trabalhe Conosco', href: '/trabalhe-conosco' },
-    { label: 'Responsabilidade Social', href: '/responsabilidade-social' },
-    { label: 'Imprensa', href: '/imprensa' },
+    { label: 'Central de Atendimento', href: '/central-atendimento' },
+    { label: 'Dúvidas Frequentes', href: '/duvidas-frequentes' },
+   
   ],
   ajuda: [
-    { label: 'Central de Atendimento', href: '/atendimento' },
+    { label: 'Trabalhe Conosco', href: '/trabalhe-conosco' },
+    { label: 'Formas de Pagamento', href: '/formas-pagamento' },
     { label: 'Como Personalizar', href: '/como-personalizar' },
-    { label: 'Formas de Pagamento', href: '/pagamento' },
-    { label: 'Entrega e Frete', href: '/entrega' },
-    { label: 'Dúvidas Frequentes', href: '/faq' },
     { label: 'Personalização', href: '/personalizacao' },
   ],
   produtos: [
@@ -234,12 +295,11 @@ const footerLinks = {
     { label: 'Livros Personalizados', href: '/categoria-livro/personalizados' },
   ],
   politicas: [
-    { label: 'Termos e Condições', href: '/termos-e-condicoes' },
-    { label: 'Política de Privacidade', href: '/politicas-de-privacidade' },
-    { label: 'Política de Cookies', href: '/politicas-de-cookies' },
-    { label: 'Política de Reembolso', href: '/politicas-de-reembolso' },
-    { label: 'Política de Entrega', href: '/politica-de-entrega' },
-    { label: 'Segurança e Privacidade', href: '/seguranca-e-privacidade' },
+    { label: 'Termos e Condições', href: '/termos-condicoes' },
+    { label: 'Política de Privacidade', href: '/politica-privacidade' },
+    { label: 'Política de Cookies', href: '/politica-cookies' },
+    { label: 'Política de Reembolso', href: '/politica-reembolso' },
+    { label: 'Segurança e Privacidade', href: '/seguranca-privacidade' },
   ]
 };
 

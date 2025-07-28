@@ -94,7 +94,7 @@ export function ProdutosCarrosselNetflix({
   return (
     <section className="py-16 overflow-x-hidden">
       <div className="container mx-auto px-4 mb-6">
-        <Badge className="mb-3 bg-[#27b99a]/10 hover:bg-[#27b99a]/10 text-[#27b99a] dark:bg-[#27b99a]/20 dark:text-[#27b99a]">
+        <Badge className="mb-3 bg-[#27b99a]/10 hover:bg-[#27b99a]/10 text-[#27b99a] dark:bg-[#27b99a]/20 dark:text-[#27b99a] rounded-full">
           {badgeTexto}
         </Badge>
         

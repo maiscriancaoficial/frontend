@@ -42,11 +42,10 @@ export default function AdminConfiguracoesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
+      {/* Cabeçalho */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-pink-800 dark:text-pink-300">
-          Configurações
-        </h2>
+        <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
         <p className="text-gray-500 dark:text-gray-400">
           Personalize as configurações do seu site e conta de administrador
         </p>

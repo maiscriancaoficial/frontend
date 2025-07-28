@@ -1,21 +1,70 @@
 'use client';
 
-import { useState } from 'react';
-import { useCarrinhoStore } from '@/services/carrinho-service';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, Gift, X, ChevronRight, Receipt, ShieldCheck, CreditCard } from 'lucide-react';
+import { Gift, X, ChevronRight, Receipt, Lock, Award } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+interface ItemCarrinho {
+  id: string;
+  titulo: string;
+  preco: number;
+  precoPromocional?: number | null;
+  fotoPrincipal: string;
+  quantidade: number;
+  slug: string;
+  categoria?: { titulo: string; slug: string };
+  // Campos específicos de livros
+  livroId?: string;
+  livroNome?: string;
+  livroPreco?: number;
+  livroPrecoPromocional?: number | null;
+  livroCapa?: string;
+  avatar?: any;
+  nomePersonagem?: string;
+  tipo?: string;
+  adicionadoEm?: string;
+}
+
+// Funções auxiliares para trabalhar com diferentes tipos de itens
+function getPreco(item: ItemCarrinho): number {
+  return item.preco ?? item.livroPreco ?? 0;
+}
+
+function getPrecoPromocional(item: ItemCarrinho): number | null {
+  return item.precoPromocional ?? item.livroPrecoPromocional ?? null;
+}
 
 export function CarrinhoResumo() {
-  const { itens, total, aplicarCupom } = useCarrinhoStore();
+  const [itens, setItens] = useState<ItemCarrinho[]>([]);
   const [cupom, setCupom] = useState('');
   const [cupomAplicado, setCupomAplicado] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  
+  useEffect(() => {
+    const carrinho = localStorage.getItem('carrinho');
+    if (carrinho) {
+      setItens(JSON.parse(carrinho));
+    }
+    
+    // Escutar eventos de atualização do carrinho
+    const handleCarrinhoAtualizado = () => {
+      const carrinhoAtualizado = localStorage.getItem('carrinho');
+      if (carrinhoAtualizado) {
+        setItens(JSON.parse(carrinhoAtualizado));
+      } else {
+        setItens([]);
+      }
+    };
+    
+    window.addEventListener('carrinho-atualizado', handleCarrinhoAtualizado);
+    
+    return () => {
+      window.removeEventListener('carrinho-atualizado', handleCarrinhoAtualizado);
+    };
+  }, []);
   
   const handleAplicarCupom = () => {
     if (!cupom) return;
@@ -23,7 +72,10 @@ export function CarrinhoResumo() {
     setCarregando(true);
     // Simulando um delay de rede
     setTimeout(() => {
-      const resultado = aplicarCupom(cupom);
+      // Simular validação de cupom
+      const cuponsValidos = ['FLORES10', 'DESCONTO15', 'PRIMEIRA20'];
+      const resultado = cuponsValidos.includes(cupom.toUpperCase());
+      
       if (resultado) {
         setCupomAplicado(true);
         toast.success(`Cupom ${cupom.toUpperCase()} aplicado com sucesso!`);
@@ -34,9 +86,16 @@ export function CarrinhoResumo() {
     }, 800);
   };
   
-  // Calcular frete (simulação)
-  const valorFrete = total > 200 ? 0 : 29.90;
-  const totalComFrete = total + valorFrete;
+  // Calcular valores
+  const subtotal = itens.reduce((acc, item) => {
+    const precoPromocional = getPrecoPromocional(item);
+    const preco = precoPromocional || getPreco(item);
+    const quantidade = item.quantidade || 1;
+    return acc + (preco * quantidade);
+  }, 0);
+  
+  const desconto = cupomAplicado ? subtotal * 0.1 : 0; // 10% de desconto
+  const total = subtotal - desconto; // Sem frete para produtos digitais
 
   // Se não houver itens, não mostra o resumo
   if (itens.length === 0) {
@@ -44,51 +103,31 @@ export function CarrinhoResumo() {
   }
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg rounded-3xl sticky top-4">
-      <div className="bg-gradient-to-br from-[#27b99a] via-[#1c9f87] to-[#12756a] p-6 border-b border-white/20 text-white shadow-sm rounded-t-3xl">
-        <motion.div 
-          initial={{ y: -5, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 bg-white/20 shadow-inner border border-white/30">
-              <AvatarImage src="" />
-              <AvatarFallback className="text-white">
-                <Receipt className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            
-            <div>
-              <h3 className="font-medium text-lg">Resumo da Compra</h3>
-              <p className="text-sm text-white/80">Detalhes do seu pedido</p>
-            </div>
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden sticky top-4">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
+            <Receipt className="h-5 w-5 text-gray-600" />
           </div>
-        </motion.div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Resumo da Compra</h3>
+            <p className="text-sm text-gray-500">Detalhes do seu pedido</p>
+          </div>
+        </div>
       </div>
       
       <div className="p-6 space-y-4">
         {/* Valores */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-            <span>R$ {total.toFixed(2)}</span>
+            <span className="text-gray-600">Subtotal</span>
+            <span className="font-medium">R$ {subtotal.toFixed(2)}</span>
           </div>
           
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Frete</span>
-            {valorFrete === 0 ? (
-              <span className="text-green-500 font-medium">Grátis</span>
-            ) : (
-              <span>R$ {valorFrete.toFixed(2)}</span>
-            )}
-          </div>
-          
-          {valorFrete > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-xl p-3 text-xs flex items-start">
-              <AlertCircle className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
-              <span>Compras acima de R$ 200,00 têm frete grátis. Adicione mais R$ {(200 - total).toFixed(2)} para ganhar frete grátis.</span>
+          {cupomAplicado && (
+            <div className="flex justify-between text-sm">
+              <span className="text-green-600">Desconto (10%)</span>
+              <span className="text-green-600 font-medium">-R$ {desconto.toFixed(2)}</span>
             </div>
           )}
           
@@ -133,15 +172,17 @@ export function CarrinhoResumo() {
           
           <div className="border-t border-gray-100 dark:border-gray-800 my-3 pt-3"></div>
           
-          <div className="flex justify-between font-semibold">
-            <span>Total</span>
-            <span className="text-lg">R$ {totalComFrete.toFixed(2)}</span>
+          <div className="border-t border-gray-100 pt-3 mt-3">
+            <div className="flex justify-between font-semibold text-lg">
+              <span className="text-gray-900">Total</span>
+              <span className="text-gray-900">R$ {total.toFixed(2)}</span>
+            </div>
           </div>
         </div>
         
         <Button
           asChild
-          className="w-full h-14 bg-[#ff0080] hover:bg-[#ff0080]/90 text-white rounded-full shadow-lg shadow-[#ff0080]/20"
+          className="w-full h-12 bg-[#ff007d] hover:bg-[#ff007d]/90 text-white rounded-full font-medium"
         >
           <Link href="/checkout">
             Finalizar Compra
@@ -149,23 +190,17 @@ export function CarrinhoResumo() {
           </Link>
         </Button>
         
-        <div className="flex items-center justify-center gap-4 mt-4 text-sm text-gray-500">
-          <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-gray-400">
-              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            Pagamento seguro
+        <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5">
+            <Lock className="h-4 w-4" />
+            <span>Pagamento seguro</span>
           </div>
-          <div className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5 text-gray-400">
-              <path d="M7 10v12" />
-              <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
-            </svg>
-            Garantia de qualidade
+          <div className="flex items-center gap-1.5">
+            <Award className="h-4 w-4" />
+            <span>Garantia de qualidade</span>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

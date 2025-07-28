@@ -1,38 +1,111 @@
 'use client';
 
-import { useCarrinhoStore, ItemCarrinho } from '@/services/carrinho-service';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Minus, Plus, ShoppingCart, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Minus, Plus, Trash2, ShoppingCart, Eye, Edit3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-export function CarrinhoItens() {
-  const { itens, quantidade, removerDoCarrinho, atualizarQuantidade } = useCarrinhoStore();
+interface ItemCarrinho {
+  id: string;
+  // Campos unificados (funciona para livros e produtos)
+  titulo?: string;           // Para produtos
+  livroNome?: string;        // Para livros
+  preco?: number;            // Para produtos
+  livroPreco?: number;       // Para livros
+  precoPromocional?: number | null;     // Para produtos
+  livroPrecoPromocional?: number;       // Para livros
+  quantidade: number;
+  fotoPrincipal?: string;    // Para produtos
+  livroCapa?: string;        // Para livros
+  slug?: string;
+  categoria?: { titulo: string; slug: string };
+  
+  // Campos específicos para livros personalizados
+  nomePersonagem?: string;
+  avatar?: any;
+  tipo?: string;
+  adicionadoEm?: string;
+  livroId?: string;
+}
+
+// Funções auxiliares para detectar tipo e extrair dados
+const isLivro = (item: ItemCarrinho) => {
+  return item.livroNome || item.nomePersonagem || item.tipo === 'livro';
+};
+
+const getTitulo = (item: ItemCarrinho) => {
+  return item.titulo || item.livroNome || 'Item sem título';
+};
+
+const getImagem = (item: ItemCarrinho) => {
+  return item.fotoPrincipal || item.livroCapa || '/images/placeholder.jpg';
+};
+
+const getPreco = (item: ItemCarrinho) => {
+  return item.preco || item.livroPreco || 0;
+};
+
+const getPrecoPromocional = (item: ItemCarrinho) => {
+  return item.precoPromocional || item.livroPrecoPromocional || null;
+};
+
+const CarrinhoItens = () => {
+  const [itens, setItens] = useState<ItemCarrinho[]>([]);
+  const [quantidade, setQuantidade] = useState(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    const carrinho = localStorage.getItem('carrinho');
+    if (carrinho) {
+      const itensCarrinho = JSON.parse(carrinho);
+      setItens(itensCarrinho);
+      setQuantidade(itensCarrinho.reduce((acc: number, item: ItemCarrinho) => acc + item.quantidade, 0));
+    }
+  }, []);
+
+  const removerDoCarrinho = (id: string) => {
+    const novoCarrinho = itens.filter((item) => item.id !== id);
+    localStorage.setItem('carrinho', JSON.stringify(novoCarrinho));
+    setItens(novoCarrinho);
+    setQuantidade(novoCarrinho.reduce((acc: number, item: ItemCarrinho) => acc + item.quantidade, 0));
+    toast.success("Item removido do carrinho!");
+  };
+
+  const atualizarQuantidade = (id: string, novaQuantidade: number) => {
+    if (novaQuantidade <= 0) {
+      removerDoCarrinho(id);
+      return;
+    }
+    
+    const novoCarrinho = itens.map((item) => {
+      if (item.id === id) {
+        return { ...item, quantidade: novaQuantidade };
+      }
+      return item;
+    });
+    localStorage.setItem('carrinho', JSON.stringify(novoCarrinho));
+    setItens(novoCarrinho);
+    setQuantidade(novoCarrinho.reduce((acc: number, item: ItemCarrinho) => acc + item.quantidade, 0));
+  };
 
   if (itens.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-6">
-        <div className="relative w-40 h-40">
-          <div className="absolute inset-0 bg-[#27b99a]/20 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
-          <div className="absolute inset-4 bg-[#27b99a]/10 rounded-full animate-pulse" style={{ animationDuration: '2s' }}></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <ShoppingCart size={56} className="text-[#27b99a]" />
+        <div className="relative w-32 h-32">
+          <div className="absolute inset-0 bg-gray-100 rounded-full flex items-center justify-center">
+            <ShoppingCart size={40} className="text-gray-400" />
           </div>
         </div>
-        <h3 className="text-xl font-semibold">Seu carrinho está vazio</h3>
-        <p className="text-center text-gray-500 dark:text-gray-400 max-w-md">
-          Parece que você ainda não adicionou nenhum item ao seu carrinho.
-          Explore nossa coleção de flores e presentes para encontrar algo especial.
+        <h3 className="text-xl font-semibold text-gray-900">Seu carrinho está vazio</h3>
+        <p className="text-center text-gray-500 max-w-md">
+          Adicione livros personalizados ao seu carrinho para continuar.
         </p>
-        <Button asChild className="bg-[#ff0080] hover:bg-[#ff0080]/90 text-white rounded-full shadow-md shadow-[#ff0080]/20">
+        <Button asChild className="bg-[#ff007d] hover:bg-[#ff007d]/90 text-white rounded-full px-8">
           <Link href="/">
-            Continuar Comprando
+            Explorar Livros
           </Link>
         </Button>
       </div>
@@ -40,110 +113,140 @@ export function CarrinhoItens() {
   }
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg rounded-3xl">
-      <div className="bg-gradient-to-br from-[#27b99a] via-[#1c9f87] to-[#12756a] p-6 border-b border-white/20 text-white shadow-sm rounded-t-3xl">
-        <motion.div 
-          initial={{ y: -5, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex items-center justify-between"
-        >
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 bg-white/20 shadow-inner border border-white/30">
-              <AvatarImage src="" />
-              <AvatarFallback className="text-white">
-                <ShoppingCart className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            
+            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5 text-gray-600" />
+            </div>
             <div>
-              <h3 className="font-medium text-lg">Itens do Carrinho</h3>
-              <p className="text-sm text-white/80">Seus produtos selecionados</p>
+              <h3 className="font-semibold text-gray-900">Seus Livros</h3>
+              <p className="text-sm text-gray-500">{quantidade} {quantidade === 1 ? 'item selecionado' : 'itens selecionados'}</p>
             </div>
           </div>
-          
-          <Badge className="bg-white/30 hover:bg-white/40 text-white text-xs font-medium px-3 py-1">
-            {quantidade} {quantidade === 1 ? 'item' : 'itens'}
-          </Badge>
-        </motion.div>
+        </div>
       </div>
       
-      <ScrollArea className="max-h-[500px] overflow-auto">
-        <AnimatePresence>
-          {itens.map((item) => (
-            <motion.div
-              key={item.produto.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.3 }}
-              className="border-b border-gray-100 dark:border-gray-800 last:border-0"
-            >
-              <div className="flex p-4 gap-4">
-                {/* Imagem do produto */}
-                <div className="w-24 h-24 rounded-2xl overflow-hidden relative flex-shrink-0 bg-gray-50">
+      <div className="divide-y divide-gray-100">
+        {itens.map((item) => {
+          const precoFinal = getPrecoPromocional(item) || getPreco(item);
+          const precoTotal = precoFinal * item.quantidade;
+          const ehLivro = isLivro(item);
+          
+          return (
+            <div key={item.id} className="p-6">
+              <div className="flex gap-6">
+                {/* Thumbnail do item */}
+                <div className="w-32 h-40 rounded-3xl overflow-hidden relative flex-shrink-0 bg-gray-50 shadow-sm">
                   <Image 
-                    src={item.produto.fotoPrincipal || '/produtos/produto-placeholder.jpg'}
-                    alt={item.produto.titulo}
+                    src={getImagem(item)}
+                    alt={getTitulo(item)}
                     fill
                     className="object-cover"
                   />
                 </div>
                 
-                {/* Informações do produto */}
-                <div className="flex-1">
-                  <h4 className="font-medium line-clamp-2">{item.produto.titulo}</h4>
-                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                    <span>SKU: {item.produto.sku || 'N/A'}</span>
-                  </div>
+                {/* Informações do item */}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-lg text-gray-900 mb-2">{getTitulo(item)}</h4>
                   
-                  <div className="flex items-center mt-2">
-                    <div className="rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex overflow-hidden shadow-sm">
-                      <button
-                        onClick={() => atualizarQuantidade(item.produto.id, item.quantidade - 1)}
-                        className="w-9 h-9 flex items-center justify-center hover:bg-[#27b99a]/10 text-gray-600 dark:text-gray-400 hover:text-[#27b99a] transition-colors"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="w-12 text-center flex items-center justify-center font-medium">
-                        {item.quantidade}
-                      </span>
-                      <button
-                        onClick={() => atualizarQuantidade(item.produto.id, item.quantidade + 1)}
-                        className="w-9 h-9 flex items-center justify-center hover:bg-[#27b99a]/10 text-gray-600 dark:text-gray-400 hover:text-[#27b99a] transition-colors"
-                      >
-                        <Plus size={14} />
-                      </button>
+                  {/* Mostrar personagem apenas para livros */}
+                  {ehLivro && item.nomePersonagem && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                        <span className="text-xs font-medium text-gray-600">👤</span>
+                      </div>
+                      <span className="text-sm text-gray-600">Personagem: <span className="font-medium">{item.nomePersonagem}</span></span>
                     </div>
-                    <div className="ml-auto flex items-center gap-2">
-                      <span className="font-semibold">
-                        R$ {item.precoTotal.toFixed(2)}
-                      </span>
+                  )}
+                  
+                  {/* Botões de ação - apenas para livros */}
+                  {ehLivro && (
+                    <div className="flex items-center gap-3 mb-4">
                       <Button
                         onClick={() => {
-                          removerDoCarrinho(item.produto.id);
-                          toast.success("Item removido do carrinho!");
+                          // Navegar para prévia do livro
+                          const slug = getTitulo(item).toLowerCase().replace(/\s+/g, '-');
+                          router.push(`/categoria-livro/aventura/livro/${slug}/previa-livro`);
                         }}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 text-[#ff007d] border-[#ff007d]/20 hover:bg-[#ff007d]/5 rounded-full"
+                      >
+                        <Eye size={16} />
+                        Ver Prévia
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Navegar para edição do avatar
+                          const slug = getTitulo(item).toLowerCase().replace(/\s+/g, '-');
+                          router.push(`/categoria-livro/aventura/livro/${slug}/personalizar-avatar`);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 text-[#27b99a] border-[#27b99a]/20 hover:bg-[#27b99a]/5 rounded-full"
+                      >
+                        <Edit3 size={16} />
+                        Editar Avatar
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Controles de quantidade e preço */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                        <button
+                          onClick={() => atualizarQuantidade(item.id, item.quantidade - 1)}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors rounded-l-full"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="w-12 text-center flex items-center justify-center font-medium text-sm bg-gray-50">
+                          {item.quantidade}
+                        </span>
+                        <button
+                          onClick={() => atualizarQuantidade(item.id, item.quantidade + 1)}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors rounded-r-full"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                      
+                      <Button
+                        onClick={() => removerDoCarrinho(item.id)}
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        size="sm"
+                        className="text-gray-400 hover:text-red-500 hover:bg-red-50"
                       >
                         <Trash2 size={16} />
                       </Button>
                     </div>
+                    
+                    <div className="text-right">
+                      <div className="font-semibold text-lg text-gray-900">
+                        R$ {precoTotal.toFixed(2)}
+                      </div>
+                      {getPrecoPromocional(item) && (
+                        <div className="text-sm text-gray-500 line-through">
+                          R$ {(getPreco(item) * item.quantidade).toFixed(2)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </ScrollArea>
+            </div>
+          );
+        })}
+      </div>
       
-      <div className="p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-900">
+      {/* Footer */}
+      <div className="p-6 border-t border-gray-100 bg-gray-50/50">
         <div className="flex justify-between items-center">
-          <Button variant="outline" asChild className="text-[#27b99a] rounded-full border-[#27b99a]/20 hover:bg-[#27b99a]/10 hover:border-[#27b99a]/30">
+          <Button variant="outline" asChild className="text-gray-600 border-gray-200 hover:bg-gray-50">
             <Link href="/">
-              <ChevronRight className="mr-1 h-4 w-4 rotate-180" />
               Continuar Comprando
             </Link>
           </Button>
@@ -152,6 +255,8 @@ export function CarrinhoItens() {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
-}
+};
+
+export { CarrinhoItens };

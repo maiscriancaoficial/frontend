@@ -33,8 +33,8 @@ export function AvatarFallback({
   height = 200
 }: AvatarFallbackProps) {
   const seed = useMemo(() => {
-    return `${name}-${Math.floor(Math.random() * 1000)}`;
-  }, [name]);
+    return `${name}-${tipo}`;
+  }, [name, tipo]);
 
   const avatarSvg = useMemo(() => {
     if (tipo === 'menino') {
@@ -86,7 +86,7 @@ export function ItemFallback({
   height = 60
 }: ItemFallbackProps) {
   const seed = useMemo(() => {
-    return `${itemType}-${itemId}-${Math.floor(Math.random() * 100)}`;
+    return `${itemType}-${itemId}`;
   }, [itemType, itemId]);
 
   // Configurações específicas para cada tipo de item

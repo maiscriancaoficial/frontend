@@ -1,392 +1,642 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Wand2, Loader2, ShoppingCart, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Wand2, Loader2, ShoppingCart, Edit3, Check, X, Sparkles, Palette, User, Book } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-
-import { AvatarPreview } from './components/avatar-preview';
-import { AvatarCustomizer } from './components/avatar-customizer';
-import { AvatarFallback, ItemFallback, LoadingFallback, ImageFallback } from './components/avatar-fallbacks';
-import { AvatarConfig, AvatarOptions } from './types';
-import { getAvatarOptions, salvarAvatarPersonalizado } from './services/avatar-service';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 
-// Fallbacks são agora importados do componente avatar-fallbacks.tsx
+// Types
+interface AvatarConfig {
+  tipo: 'menino' | 'menina';
+  nome: string;
+  pele?: string;
+  cabelo?: string;
+  corCabelo?: string;
+  olhos?: string;
+  roupa?: string;
+  corRoupa?: string;
+  shorts?: string;
+  oculos?: string;
+  chapeu?: string;
+  bone?: string;
+  aderecos?: string[];
+}
 
-export default function PersonalizarAvatarPage() {
+interface AvatarOptions {
+  tipos: string[];
+  peles: Array<{ id: string; imageUrl: string }>;
+  cabelos: Array<{ id: string; imageUrl: string }>;
+  coresCabelo: Array<{ id: string; colorValue: string; label: string }>;
+  olhos: Array<{ id: string; imageUrl: string }>;
+  roupas: Array<{ id: string; imageUrl: string }>;
+  coresRoupa: Array<{ id: string; colorValue: string; label: string }>;
+  shorts: Array<{ id: string; imageUrl: string }>;
+  oculos: Array<{ id: string; imageUrl: string }>;
+  chapeus: Array<{ id: string; imageUrl: string }>;
+  bones: Array<{ id: string; imageUrl: string }>;
+  aderecos: Array<{ id: string; imageUrl: string }>;
+}
+
+export default function PersonalizarAvatarV2Page() {
   const params = useParams();
   const router = useRouter();
-  const livroSlug = params.livroSlug as string;
-  const categoriaSlug = params.slug as string;
-  const [nome, genero] = (params.genero_nome as string)?.split('&nome=') || ['', ''];
+  const searchParams = useSearchParams();
   
   const [loading, setLoading] = useState(false);
-  // Inicializando com um objeto vazio com arrays vazios para evitar erro "Cannot read properties of null"
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
+  const [fotosPrincipais, setFotosPrincipais] = useState<{[key: string]: string}>({});
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  
+  // Avatar configuration
   const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({
-    nome: '',
     tipo: 'menino',
-    pele: 'clara',
-    olhos: undefined,
-    cabelo: undefined,
-    corCabelo: undefined,
-    roupa: undefined,
-    corRoupa: undefined,
-    shorts: undefined,
-    oculos: undefined,
-    chapeu: undefined,
-    bone: undefined,
-    aderecos: []
+    nome: 'Personagem'
   });
 
-  // Carregar opções para personalização do avatar
+  // Initialize from URL params
   useEffect(() => {
-    const options = getAvatarOptions();
-    setAvatarOptions(options);
+    const genero = searchParams.get('genero') as 'menino' | 'menina';
+    const nome = searchParams.get('nome');
+    
+    if (genero && (genero === 'menino' || genero === 'menina')) {
+      setAvatarConfig(prev => ({
+        ...prev,
+        tipo: genero,
+        nome: nome || 'Personagem'
+      }));
+      setTempName(nome || 'Personagem');
+    }
+  }, [searchParams]);
+
+  // Load avatar options
+  useEffect(() => {
+    const loadAvatarOptions = async () => {
+      try {
+        const response = await fetch('/api/avatares/opcoes');
+        if (response.ok) {
+          const data = await response.json();
+          
+          const opcoesConvertidas: AvatarOptions = {
+            tipos: ['menino', 'menina'],
+            peles: data.opcoes.peles.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            cabelos: data.opcoes.cabelos.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            coresCabelo: data.opcoes.coresCabelo.map((item: any) => ({
+              id: item.id,
+              colorValue: item.cor,
+              label: item.nome
+            })),
+            olhos: data.opcoes.olhos.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            roupas: data.opcoes.roupas.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            coresRoupa: data.opcoes.coresRoupa.map((item: any) => ({
+              id: item.id,
+              colorValue: item.cor,
+              label: item.nome
+            })),
+            shorts: data.opcoes.shorts.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            oculos: data.opcoes.oculos.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            chapeus: data.opcoes.chapeus.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            bones: data.opcoes.bones.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            })),
+            aderecos: data.opcoes.aderecos.map((item: any) => ({
+              id: item.id,
+              imageUrl: item.arquivo
+            }))
+          };
+          
+          setAvatarOptions(opcoesConvertidas);
+          setFotosPrincipais(data.fotosPrincipais || {});
+        }
+      } catch (error) {
+        console.error('Erro ao carregar opções:', error);
+      }
+    };
+
+    loadAvatarOptions();
   }, []);
 
-  // Restaurar avatar do localStorage se existir
-  useEffect(() => {
-    try {
-      const savedAvatar = localStorage.getItem(`avatar_${livroSlug}`);
-      if (savedAvatar) {
-        const parsed = JSON.parse(savedAvatar);
-        setAvatarConfig(current => ({
-          ...parsed,
-          nome: nome || parsed.nome,
-          tipo: (genero === 'menino' || genero === 'menina') ? genero : parsed.tipo
-        }));
-        toast.success("Avatar carregado!", {
-          description: "Seu avatar anterior foi restaurado"
-        });
-      } else if (nome || genero) {
-        setAvatarConfig(current => ({
-          ...current,
-          nome: nome || current.nome,
-          tipo: (genero === 'menino' || genero === 'menina') ? genero : current.tipo
-        }));
-      }
-    } catch (error) {
-      console.error('Erro ao restaurar avatar do localStorage:', error);
-    }
-  }, [livroSlug, nome, genero]);
-
-  // Função para gerar avatar aleatório
-  const generateRandomAvatar = () => {
-    if (!avatarOptions) {
-      toast.error("Não foi possível gerar o avatar", {
-        description: "Aguarde o carregamento das opções"
-      });
-      return;
-    }
-    
-    setLoading(true);
-    setTimeout(() => {
-      // Função auxiliar para seleção segura de item aleatório
-      const getRandomItem = <T extends { id: string }>(items: T[] | undefined): string => {
-        if (!items || items.length === 0) return '';
-        return items[Math.floor(Math.random() * items.length)].id;
-      };
-      
-      const randomPele = getRandomItem(avatarOptions.peles);
-      const randomCabelo = getRandomItem(avatarOptions.cabelos);
-      const randomCorCabelo = getRandomItem(avatarOptions.coresCabelo);
-      const randomOlhos = getRandomItem(avatarOptions.olhos);
-      const randomRoupa = getRandomItem(avatarOptions.roupas);
-      const randomCorRoupa = getRandomItem(avatarOptions.coresRoupa);
-      const randomShorts = getRandomItem(avatarOptions.shorts);
-      
-      toast.success("Avatar aleatório gerado!", {
-        description: "Personalize-o como desejar ou gere outro!"
-      });
-      
-      setAvatarConfig(current => ({
-        ...current,
-        pele: randomPele || current.pele,
-        cabelo: randomCabelo || current.cabelo,
-        corCabelo: randomCorCabelo || current.corCabelo,
-        olhos: randomOlhos || current.olhos,
-        roupa: randomRoupa || current.roupa,
-        corRoupa: randomCorRoupa || current.corRoupa,
-        shorts: randomShorts || current.shorts
-      }));
-      
-      setLoading(false);
-    }, 600);
-  };
-
-  // Função para atualizar a configuração do avatar
-  const updateAvatarConfig = (newConfig: Partial<AvatarConfig>) => {
-    setAvatarConfig(current => ({
-      ...current,
-      ...newConfig
-    }));
-  };
-
-  // Verifica se a configuração do avatar é válida para salvar
-  const isConfigValid = () => {
-    // Campos obrigatórios mínimos para o avatar ser válido
-    const requiredFields = ['nome', 'tipo', 'pele'];
-    const recommendedFields = ['cabelo', 'olhos', 'roupa'];
-    
-    // Verifica se todos os campos obrigatórios estão preenchidos
-    const hasAllRequired = requiredFields.every(field => Boolean(avatarConfig[field as keyof AvatarConfig]));
-    
-    // Verifica se pelo menos um dos campos recomendados está preenchido
-    const hasOneRecommended = recommendedFields.some(field => Boolean(avatarConfig[field as keyof AvatarConfig]));
-    
-    return hasAllRequired && hasOneRecommended;
-  };
-
-  // Função para salvar avatar
-  const handleSalvarAvatar = async () => {
-    try {
-      // Verifica se o avatar é válido antes de salvar
-      if (!isConfigValid()) {
-        toast.error("Avatar incompleto", {
-          description: "Por favor, complete pelo menos os campos básicos do avatar antes de continuar."
-        });
-        return false;
-      }
-      
-      setLoading(true);
-      
-      // Certifica-se de que temos um nome válido
-      const avatarToSave = {
-        ...avatarConfig,
-        nome: avatarConfig.nome || nome || "Avatar"
-      };
-      
-      // Salva no localStorage com tratamento de erro
-      try {
-        localStorage.setItem('avatarConfig', JSON.stringify(avatarToSave));
-        localStorage.setItem(`avatar_${livroSlug}`, JSON.stringify(avatarToSave));
-      } catch (storageError) {
-        console.error('Erro ao salvar no localStorage:', storageError);
-        // Continua mesmo com erro de localStorage
-      }
-      
-      toast.success("Avatar salvo com sucesso!", {
-        description: "Seu avatar foi personalizado!"
-      });
-      
-      setLoading(false);
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar avatar localmente:', error);
-      toast.error("Erro ao salvar avatar", {
-        description: "Houve um problema ao salvar suas configurações"
-      });
-      setLoading(false);
-      return true; // Retorna true mesmo com erro para continuar a navegação
+  const handleNameEdit = () => {
+    if (isEditingName) {
+      setAvatarConfig(prev => ({ ...prev, nome: tempName }));
+      setIsEditingName(false);
+    } else {
+      setIsEditingName(true);
     }
   };
 
-  // Adicionar ao carrinho
-  const handleAddToCart = async () => {
-    if (!isConfigValid()) return;
-    
+  const handleSave = async () => {
     setLoading(true);
     try {
-      // Salvamos o avatar primeiro
-      await handleSalvarAvatar();
+      // Salvar avatar no localStorage
+      const avatarParaSalvar = {
+        nome: avatarConfig.nome,
+        tipo: avatarConfig.tipo,
+        pele: avatarConfig.pele,
+        cabelo: avatarConfig.cabelo,
+        olhos: avatarConfig.olhos,
+        roupa: avatarConfig.roupa,
+        oculos: avatarConfig.oculos,
+        chapeu: avatarConfig.chapeu,
+        bone: avatarConfig.bone
+      };
       
-      // Aqui seria a lógica para adicionar ao carrinho
-      // Por enquanto, apenas mostramos um toast
-      setTimeout(() => {
-        toast.success("Adicionado ao carrinho!", {
-          description: "O livro personalizado foi adicionado ao seu carrinho"
-        });
-        setLoading(false);
-      }, 800);
+      localStorage.setItem(`avatar_${params.livroSlug}`, JSON.stringify(avatarParaSalvar));
+      console.log('💾 Avatar salvo no localStorage:', avatarParaSalvar);
+      
+      // Simular delay para UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Avatar personalizado salvo com sucesso!');
+      
+      // Navigate to previa-livro
+      router.push(`/categoria-livro/${params.slug}/livro/${params.livroSlug}/previa-livro?avatar=${avatarConfig.tipo}&nome=${encodeURIComponent(avatarConfig.nome)}`);
     } catch (error) {
-      console.error('Erro ao adicionar ao carrinho:', error);
-      toast.error("Erro ao adicionar ao carrinho", {
-        description: "Não foi possível adicionar o item ao carrinho"
-      });
+      console.error('❌ Erro ao salvar avatar:', error);
+      toast.error('Erro ao salvar avatar');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#27b99a]/20 via-blue-500/30 to-[#f29798]/30 overflow-x-hidden pb-32">
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute top-96 -right-20 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-20 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-      
-      {/* Top Navigation Bar */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 flex items-center justify-between px-6 py-4 bg-white/10 backdrop-blur-sm"
-      >
-        <Link 
-          href={`/categoria/${categoriaSlug}/livro/${livroSlug}`}
-          className="text-white hover:text-gray-100 flex items-center gap-1 transition-all"
-        >
-          <ArrowLeft size={18} />
-          <span>Voltar</span>
-        </Link>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={generateRandomAvatar}
-          className="px-4 py-2 bg-[#f29798] hover:bg-[#f29798]/80 rounded-full text-white font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
-          disabled={loading}
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 size={16} />}
-          <span>Gerar Avatar Aleatório</span>
-        </motion.button>
-      </motion.div>
-
-      {/* Título como Badge */}
-      <div className="relative z-10 px-6 py-6">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="inline-block bg-white/20 backdrop-blur-md px-6 py-3 rounded-r-full border-l-4 border-yellow-300 shadow-lg"
-        >
-          <h1 className="text-white text-xl md:text-2xl font-bold">
-            Crie um personagem único que representará {avatarConfig.nome || nome || "seu filho"} na história.
-          </h1>
-        </motion.div>
-      </div>
-
-      {/* Main Content - 60/40 Split */}
-      <div className="flex flex-col lg:flex-row w-full relative z-10 px-4 lg:px-8">
-        {/* Preview Column - 60% */}
-        <div className="w-full lg:w-[60%] lg:pr-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="h-full"
-          >
-            <Card className="h-full bg-white/95 backdrop-blur-sm border-none shadow-xl rounded-3xl overflow-hidden">
-              <CardContent className="p-6 flex flex-col items-center justify-center">
-                <h2 className="text-xl font-bold mb-6 text-gray-800 self-start">Prévia do Avatar</h2>
-                <div className="w-full h-full flex items-center justify-center">
-                  <Suspense fallback={<LoadingFallback message="Carregando avatar..." />}>
-                    {avatarConfig.pele || avatarConfig.cabelo || avatarConfig.olhos || avatarConfig.roupa ? (
-                      <AvatarPreview 
-                        config={avatarConfig}
-                        fallback={<AvatarFallback tipo={avatarConfig.tipo as 'menino' | 'menina'} />}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center gap-4">
-                        <AvatarFallback tipo="menino" />
-                        <p className="text-gray-500 text-center mt-4">
-                          Comece a personalização ao lado para criar seu avatar
-                        </p>
-                      </div>
-                    )}
-                  </Suspense>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link 
+                href={`/categoria-livro/${params.slug}/livro/${params.livroSlug}`}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="font-medium">Voltar</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-200" />
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#ff007d]" />
+                <h1 className="text-xl font-bold text-gray-900">Personalizar Avatar</h1>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleSave}
+              disabled={loading}
+              className="bg-[#ff007d] hover:bg-[#ff007d]/90 text-white px-6 py-2 rounded-full font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Book className="h-4 w-4 mr-2" />
+                  Ver Prévia do Livro
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        
-        {/* Customizer Column - 40% */}
-        <div className="w-full lg:w-[40%] mt-4 lg:mt-0 lg:pl-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="h-full"
-          >
-            <Card className="h-full bg-white/95 backdrop-blur-sm border-none shadow-xl rounded-3xl overflow-hidden">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-6 text-gray-800">Personalização</h2>
-                <Suspense fallback={<LoadingFallback />}>
-                  {avatarOptions ? (
-                    <AvatarCustomizer 
-                      config={avatarConfig} 
-                      onChange={updateAvatarConfig}
-                      avatarOptions={avatarOptions}
-                    />
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="grid grid-cols-4 gap-8 h-[calc(100vh-120px)]">
+          
+          {/* Avatar Preview - 75% */}
+          <div className="col-span-3">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm h-full p-8 flex flex-col">
+              
+              {/* Preview Header */}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-[#27b99a] rounded-full"></div>
+                  <h2 className="text-2xl font-bold text-gray-900">Prévia do Avatar</h2>
+                </div>
+                
+                {/* Name Editor */}
+                <div className="flex items-center gap-2">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="w-40 h-9 text-sm border-gray-200 rounded-full"
+                        placeholder="Nome do personagem"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleNameEdit}
+                        className="h-9 w-9 p-0 bg-[#27b99a] hover:bg-[#27b99a]/90 rounded-full"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingName(false);
+                          setTempName(avatarConfig.nome);
+                        }}
+                        className="h-9 w-9 p-0 border-gray-200 rounded-full"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ) : (
-                    <div className="space-y-8">
-                      <ItemFallback itemType="cabelo" /> 
-                      <ItemFallback itemType="roupa" />
-                      <ItemFallback itemType="pele" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-700">{avatarConfig.nome}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleNameEdit}
+                        className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
                     </div>
                   )}
-                </Suspense>
-              </CardContent>
-            </Card>
-          </motion.div>
+                </div>
+              </div>
+
+              {/* Avatar Display */}
+              <div className="flex-1 flex items-center justify-center">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="relative"
+                >
+                  {avatarConfig.tipo && fotosPrincipais[avatarConfig.tipo] ? (
+                    <div className="relative">
+                      <div className="w-80 h-80 lg:w-96 lg:h-96 relative">
+                        <Image
+                          src={fotosPrincipais[avatarConfig.tipo]}
+                          alt={`Avatar ${avatarConfig.tipo} - ${avatarConfig.nome}`}
+                          fill
+                          className="object-contain rounded-3xl shadow-2xl"
+                          priority
+                        />
+                      </div>
+                      
+                      {/* Avatar Info Overlay */}
+                      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-white/95 backdrop-blur-sm border border-gray-100 rounded-full px-6 py-3 shadow-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 bg-[#ff007d] rounded-full animate-pulse"></div>
+                            <span className="text-sm font-medium text-gray-700">
+                              {avatarConfig.tipo === 'menino' ? 'Menino' : 'Menina'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-80 h-80 lg:w-96 lg:h-96 bg-gray-50 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-gray-200">
+                      <div className="text-8xl mb-4 opacity-50">
+                        {avatarConfig.tipo === 'menina' ? '👧' : '👦'}
+                      </div>
+                      <p className="text-gray-500 text-center font-medium">
+                        Carregando avatar...
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Type Selector */}
+              <div className="flex justify-center mt-8">
+                <div className="bg-gray-50 rounded-full p-1 flex">
+                  {['menino', 'menina'].map((tipo) => (
+                    <button
+                      key={tipo}
+                      onClick={() => setAvatarConfig(prev => ({ ...prev, tipo: tipo as 'menino' | 'menina' }))}
+                      className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                        avatarConfig.tipo === tipo
+                          ? 'bg-white text-[#ff007d] shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {tipo === 'menino' ? '👦 Menino' : '👧 Menina'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Customization Panel - 25% */}
+          <div className="col-span-1">
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm h-full overflow-hidden">
+              
+              {/* Panel Header */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <Palette className="h-5 w-5 text-[#27b99a]" />
+                  <h3 className="text-lg font-bold text-gray-900">Personalização</h3>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">Customize seu avatar</p>
+              </div>
+
+              {/* Customization Options */}
+              <div className="p-6 space-y-6 overflow-y-auto h-[calc(100%-100px)]">
+                
+                {/* Loading State */}
+                {!avatarOptions ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <div className="h-4 bg-gray-100 rounded-full animate-pulse"></div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[1, 2, 3].map((j) => (
+                            <div key={j} className="aspect-square bg-gray-100 rounded-xl animate-pulse"></div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {/* Peles */}
+                    {avatarOptions.peles.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <User className="h-4 w-4 text-[#ff007d]" />
+                          Pele
+                        </h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.peles.slice(0, 8).map((pele) => (
+                            <button
+                              key={pele.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, pele: pele.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.pele === pele.id
+                                  ? 'border-[#ff007d] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={pele.imageUrl}
+                                alt="Pele"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cabelos */}
+                    {avatarOptions.cabelos.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <Wand2 className="h-4 w-4 text-[#27b99a]" />
+                          Cabelo
+                        </h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.cabelos.slice(0, 8).map((cabelo) => (
+                            <button
+                              key={cabelo.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, cabelo: cabelo.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.cabelo === cabelo.id
+                                  ? 'border-[#27b99a] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={cabelo.imageUrl}
+                                alt="Cabelo"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cores do Cabelo */}
+                    {avatarOptions.coresCabelo.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Cor do Cabelo</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.coresCabelo.slice(0, 8).map((cor) => (
+                            <button
+                              key={cor.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, corCabelo: cor.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-110 ${
+                                avatarConfig.corCabelo === cor.id
+                                  ? 'border-[#ff007d] shadow-lg scale-110'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                              style={{ backgroundColor: cor.colorValue }}
+                              title={cor.label}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cores da Roupa */}
+                    {avatarOptions.coresRoupa.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Cor da Roupa</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.coresRoupa.slice(0, 8).map((cor) => (
+                            <button
+                              key={cor.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, corRoupa: cor.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-110 ${
+                                avatarConfig.corRoupa === cor.id
+                                  ? 'border-[#27b99a] shadow-lg scale-110'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                              style={{ backgroundColor: cor.colorValue }}
+                              title={cor.label}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Olhos */}
+                    {avatarOptions.olhos.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Olhos</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.olhos.slice(0, 8).map((olho) => (
+                            <button
+                              key={olho.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, olhos: olho.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.olhos === olho.id
+                                  ? 'border-[#ff007d] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={olho.imageUrl}
+                                alt="Olhos"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Roupas */}
+                    {avatarOptions.roupas.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Roupa</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.roupas.slice(0, 8).map((roupa) => (
+                            <button
+                              key={roupa.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, roupa: roupa.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.roupa === roupa.id
+                                  ? 'border-[#27b99a] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={roupa.imageUrl}
+                                alt="Roupa"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Óculos */}
+                    {avatarOptions.oculos.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Óculos</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.oculos.slice(0, 8).map((oculos) => (
+                            <button
+                              key={oculos.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, oculos: oculos.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.oculos === oculos.id
+                                  ? 'border-[#ff007d] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={oculos.imageUrl}
+                                alt="Óculos"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chapéus */}
+                    {avatarOptions.chapeus.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Chapéu</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.chapeus.slice(0, 8).map((chapeu) => (
+                            <button
+                              key={chapeu.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, chapeu: chapeu.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.chapeu === chapeu.id
+                                  ? 'border-[#27b99a] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={chapeu.imageUrl}
+                                alt="Chapéu"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bonés */}
+                    {avatarOptions.bones.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900">Boné</h4>
+                        <div className="grid grid-cols-4 gap-2">
+                          {avatarOptions.bones.slice(0, 8).map((bone) => (
+                            <button
+                              key={bone.id}
+                              onClick={() => setAvatarConfig(prev => ({ ...prev, bone: bone.id }))}
+                              className={`aspect-square rounded-full border-2 transition-all duration-200 hover:scale-105 ${
+                                avatarConfig.bone === bone.id
+                                  ? 'border-[#ff007d] shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <Image
+                                src={bone.imageUrl}
+                                alt="Boné"
+                                width={50}
+                                height={50}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Bottom Action Buttons */}
-      <motion.div 
-        className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md flex flex-col sm:flex-row gap-4 justify-between z-50 border-t border-gray-100 dark:border-gray-700 shadow-lg"
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <div className="flex gap-4">
-          <Link href={`/categoria/${categoriaSlug}/livro/${livroSlug}`}>
-            <Button
-              variant="outline"
-              className="rounded-full py-6 px-6 bg-white/95 hover:bg-gray-50 border border-gray-100 shadow-md hover:shadow-lg text-gray-700 font-medium transition-all"
-            >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              Voltar
-            </Button>
-          </Link>
-          
-          <Button
-            onClick={handleAddToCart}
-            disabled={!isConfigValid() || loading}
-            className="rounded-full py-6 px-6 bg-[#f29798] hover:bg-[#f29798]/80 text-white font-medium shadow-md hover:shadow-lg transition-all"
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>Adicionando...</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                <span>Adicionar ao Carrinho</span>
-              </div>
-            )}
-          </Button>
-        </div>
-        
-        <Link href={`/categoria/${categoriaSlug}/livro/${livroSlug}/previa-livro`}>
-          <Button
-            disabled={!isConfigValid() || loading}
-            className="rounded-full py-6 px-6 bg-[#27b99a] hover:bg-[#27b99a]/90 text-white font-medium w-full sm:w-auto"
-            onClick={handleSalvarAvatar}
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>Salvando...</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span>PRONTINHO? SIGA PARA O LIVRO</span>
-                <ChevronRight className="h-5 w-5" />
-              </div>
-            )}
-          </Button>
-        </Link>
-      </motion.div>
     </div>
   );
 }

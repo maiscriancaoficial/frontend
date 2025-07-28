@@ -415,13 +415,7 @@ export function PerfilDropdown({
                 
                 <div className="border-t border-gray-200 dark:border-gray-800 p-3">
                   <div className="flex flex-col gap-2">
-                    <Link 
-                      href="#"
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-[#27b99a] dark:hover:text-[#27b99a] rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                    >
-                      <ShoppingBag className="w-4 h-4" /> 
-                      <span>Rastrear pedido</span>
-                    </Link>
+                 
                     <Link 
                       href="#"
                       className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-[#27b99a] dark:hover:text-[#27b99a] rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"

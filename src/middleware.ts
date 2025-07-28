@@ -11,6 +11,17 @@ const rotasPublicas = [
   '/blog',
   `/carrinho`,
   `/checkout`,
+  `/personalizar-avatar`,
+  `/central-atendimento`,
+  `/como-personalizar`,
+  `/duvidas-frequentes`,
+  `/formas-pagamento`,
+  `/nossa-historia`,
+  `/politica-privacidade`,
+  `/politica-cookies`,
+  `/politica-reembolso`,
+  `/termos-condicoes`,
+  `/quem-somos`,
   `/categoria-livro/.*`,
   '/blog/.*',
   '/contato',
@@ -24,12 +35,18 @@ const rotasPublicas = [
   '/recuperar-senha',
   '/api/auth/login',
   '/api/auth/registro',
+  '/api/auth/session',
   '/debug-auth',
   '/api/debug/.*',
   
   // APIs públicas do blog
   '/api/postagens',
-  '/api/categorias-blog'
+  '/api/categorias-blog',
+  
+  // APIs públicas de livros
+  '/api/livros/.*',
+  '/api/categorias/.*',
+  '/api/produtos/.*'
 ];
 
 // Regras de redirecionamento baseadas em role

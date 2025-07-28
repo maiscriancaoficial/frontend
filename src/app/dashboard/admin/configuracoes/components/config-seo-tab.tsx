@@ -527,7 +527,7 @@ export function ConfigSeoTab() {
                       {metaDescription || 'Descrição para compartilhamento nas redes sociais...'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1 truncate">
-                      {urlCanonica || 'floriculturanaweb.com.br'}
+                      {urlCanonica || 'maiscrianca.com.br'}
                     </p>
                   </div>
                 </div>

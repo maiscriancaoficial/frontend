@@ -4,34 +4,32 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AvatarConfig } from '../types';
-import { AvatarFallback } from './avatar-fallbacks';
 
 interface AvatarPreviewProps {
   config: AvatarConfig;
+  fotoPrincipal?: string; // Foto principal vinda da API
 }
 
-export function AvatarPreview({ config }: AvatarPreviewProps) {
-  // Estados para controlar erros de carregamento de imagem
-  const [baseImageError, setBaseImageError] = useState(false);
-  const [olhosError, setOlhosError] = useState(false);
-  const [cabeloError, setCabeloError] = useState(false);
-  const [roupaError, setRoupaError] = useState(false);
-  const [shortsError, setShortsError] = useState(false);
-  const [oculosError, setOculosError] = useState(false);
-  const [chapeuError, setChapeuError] = useState(false);
+export function AvatarPreview({ config, fotoPrincipal }: AvatarPreviewProps) {
+  const [imageError, setImageError] = useState(false);
   
-  // Se não há configuração de base ou se a base falhou ao carregar, mostra o fallback
-  if (!config.pele || baseImageError) {
+  // Se não há foto principal ou erro na imagem, mostra placeholder
+  if (!fotoPrincipal || imageError) {
     return (
       <div className="relative flex items-center justify-center h-full">
-        <AvatarFallback 
-          tipo={(config.tipo === 'menino' || config.tipo === 'menina') ? config.tipo : 'menino'} 
-          name={config.nome || 'avatar'} 
-        />
+        <div className="w-72 h-72 md:w-96 md:h-96 bg-gray-100 rounded-3xl flex flex-col items-center justify-center">
+          <div className="text-6xl mb-4">
+            {config.tipo === 'menina' ? '👧' : '👦'}
+          </div>
+          <p className="text-gray-500 text-center">
+            {config.nome || 'Personagem'}
+          </p>
+        </div>
       </div>
     );
   }
   
+  // Mostrar foto principal do avatar
   return (
     <div className="relative flex items-center justify-center h-full">
       <motion.div
@@ -40,100 +38,24 @@ export function AvatarPreview({ config }: AvatarPreviewProps) {
         transition={{ duration: 0.5 }}
         className="relative w-72 h-72 md:w-96 md:h-96"
       >
-        {/* Base do avatar */}
         <div className="absolute inset-0 flex items-center justify-center">
           <Image 
-            src={`/avatares/pele/${config.pele}.png`}
-            alt="Avatar base"
+            src={fotoPrincipal}
+            alt={`Avatar ${config.tipo} - ${config.nome || 'Personagem'}`}
             width={350}
             height={350}
-            className="object-contain"
+            className="object-contain rounded-3xl shadow-lg"
             priority
-            onError={() => setBaseImageError(true)}
+            onError={() => setImageError(true)}
           />
         </div>
         
-        {/* Olhos */}
-        {config.olhos && !olhosError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/olhos/${config.olhos}.png`}
-              alt="Olhos do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setOlhosError(true)}
-            />
-          </div>
-        )}
-        
-        {/* Cabelo */}
-        {config.cabelo && !cabeloError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/cabelo/${config.cabelo}.png`}
-              alt="Cabelo do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setCabeloError(true)}
-            />
-          </div>
-        )}
-        
-        {/* Roupa */}
-        {config.roupa && !roupaError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/roupa/${config.roupa}.png`}
-              alt="Roupa do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setRoupaError(true)}
-            />
-          </div>
-        )}
-        
-        {/* Shorts/Calças */}
-        {config.shorts && !shortsError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/shorts/${config.shorts}.png`}
-              alt="Shorts/Calças do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setShortsError(true)}
-            />
-          </div>
-        )}
-        
-        {/* Óculos (opcional) */}
-        {config.oculos && !oculosError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/oculos/${config.oculos}.png`}
-              alt="Óculos do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setOculosError(true)}
-            />
-          </div>
-        )}
-        
-        {/* Chapéu (opcional) */}
-        {config.chapeu && !chapeuError && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image 
-              src={`/avatares/chapeu/${config.chapeu}.png`}
-              alt="Chapéu do avatar"
-              width={350}
-              height={350}
-              className="object-contain"
-              onError={() => setChapeuError(true)}
-            />
+        {/* Overlay com nome do personagem */}
+        {config.nome && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+            <div className="bg-black/70 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
+              {config.nome}
+            </div>
           </div>
         )}
       </motion.div>

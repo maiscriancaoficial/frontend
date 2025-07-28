@@ -3,7 +3,7 @@ import { TokenPayload, SessaoUsuario, VerificacaoToken } from './types';
 import { Role } from '../../generated/prisma';
 
 // Segredo utilizado para assinar os tokens JWT (ideal colocar no .env)
-const JWT_SECRET = process.env.JWT_SECRET || 'floriculturanaweb_segredo_temporario';
+const JWT_SECRET = process.env.JWT_SECRET || 'maiscrianca_segredo_temporario';
 // Tempo de expiração do token (30 dias em segundos)
 const JWT_EXPIRES_IN = 60 * 60 * 24 * 30;
 

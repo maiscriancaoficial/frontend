@@ -7,6 +7,29 @@ export interface ItemCarrinho {
   quantidade: number;
   precoUnitario: number;
   precoTotal: number;
+  // Dados de personalização para livros
+  personalizacao?: {
+    nomePersonagem: string;
+    genero: 'menino' | 'menina';
+    avatar?: {
+      pele?: string;
+      cabelo?: string;
+      olhos?: string;
+      roupa?: string;
+      corCabelo?: string;
+      corRoupa?: string;
+      acessorios?: string[];
+    };
+    elementos?: {
+      peles: any[];
+      cabelos: any[];
+      olhos: any[];
+      roupas: any[];
+      coresCabelo: any[];
+      coresRoupa: any[];
+      acessorios: any[];
+    };
+  };
 }
 
 interface CarrinhoStore {
@@ -16,7 +39,7 @@ interface CarrinhoStore {
   desconto: number;
   
   // Métodos
-  adicionarAoCarrinho: (produto: ProdutoCard, quantidade: number) => void;
+  adicionarAoCarrinho: (produto: ProdutoCard, quantidade: number, personalizacao?: ItemCarrinho['personalizacao']) => void;
   removerDoCarrinho: (produtoId: number) => void;
   atualizarQuantidade: (produtoId: number, quantidade: number) => void;
   limparCarrinho: () => void;
@@ -40,9 +63,20 @@ export const useCarrinhoStore = create<CarrinhoStore>()(
       quantidade: 0,
       desconto: 0,
       
-      adicionarAoCarrinho: (produto, quantidade) => {
+      adicionarAoCarrinho: (produto, quantidade, personalizacao) => {
         const itens = [...get().itens];
-        const itemIndex = itens.findIndex(item => item.produto.id === produto.id);
+        
+        // Para livros personalizados, verificar se já existe um item com a mesma personalização
+        let itemIndex = -1;
+        if (personalizacao) {
+          itemIndex = itens.findIndex(item => 
+            item.produto.id === produto.id && 
+            item.personalizacao?.nomePersonagem === personalizacao.nomePersonagem &&
+            item.personalizacao?.genero === personalizacao.genero
+          );
+        } else {
+          itemIndex = itens.findIndex(item => item.produto.id === produto.id && !item.personalizacao);
+        }
         
         if (itemIndex !== -1) {
           // O produto já existe no carrinho, atualize a quantidade
@@ -58,6 +92,7 @@ export const useCarrinhoStore = create<CarrinhoStore>()(
             quantidade,
             precoUnitario,
             precoTotal,
+            personalizacao,
           });
         }
         

@@ -68,23 +68,23 @@ export function NavConfiguracoes({ activeTab, onTabChange }: NavConfiguracoesPro
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-[20px] shadow-md overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
       <div className="p-2">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`w-full text-left px-4 py-3 rounded-[10px] flex items-center mb-1 transition-colors
+            className={`w-full text-left px-4 py-3 rounded-2xl flex items-center mb-1 transition-all duration-300
               ${
                 activeTab === tab.id
-                  ? 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 font-medium'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  ? 'bg-gradient-to-r from-[#27b99a]/10 to-[#ff0080]/10 text-[#27b99a] font-medium border border-[#27b99a]/20'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
           >
             <tab.icon 
               className={`mr-3 h-5 w-5 ${
                 activeTab === tab.id 
-                  ? 'text-pink-500 dark:text-pink-400' 
+                  ? 'text-[#27b99a]' 
                   : 'text-gray-500 dark:text-gray-400'
               }`} 
             />

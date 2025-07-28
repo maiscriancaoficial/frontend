@@ -316,6 +316,7 @@ export default function AdminClientesPage() {
             verificados: clientesVerificados,
             premium: clientesPremium
           }}
+          onAdicionarCliente={handleNovoCliente}
         />
         
         {carregando ? (

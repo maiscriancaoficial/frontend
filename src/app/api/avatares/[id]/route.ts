@@ -87,7 +87,7 @@ export async function PUT(
       }
     }
 
-    // Usar transação para atualizar avatar e elementos
+    // Usar transação para atualizar avatar e elementos (timeout aumentado)
     const avatar = await prisma.$transaction(async (tx) => {
       // Atualizar dados básicos do avatar
       const avatarAtualizado = await tx.avatar.update({
@@ -161,6 +161,8 @@ export async function PUT(
           }
         }
       });
+    }, {
+      timeout: 15000 // 15 segundos de timeout
     });
 
     return NextResponse.json({

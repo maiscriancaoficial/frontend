@@ -67,12 +67,15 @@ export function GerenciadorElementos({
   const [nomeElemento, setNomeElemento] = useState('');
   const [corElemento, setCorElemento] = useState('');
   const [imagensElemento, setImagensElemento] = useState<string[]>([]);
+  const [urlInput, setUrlInput] = useState('');
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const abrirModalNovo = () => {
     setElementoEditando(null);
     setNomeElemento('');
     setCorElemento('');
     setImagensElemento([]);
+    setUrlInput('');
     setModalAberto(true);
   };
 
@@ -81,6 +84,7 @@ export function GerenciadorElementos({
     setNomeElemento(elemento.nome);
     setCorElemento(elemento.cor || '');
     setImagensElemento(elemento.imagens);
+    setUrlInput('');
     setModalAberto(true);
   };
 
@@ -90,6 +94,8 @@ export function GerenciadorElementos({
     setNomeElemento('');
     setCorElemento('');
     setImagensElemento([]);
+    setUrlInput('');
+    setUploadingImages(false);
   };
 
   const salvarElemento = () => {
@@ -112,19 +118,79 @@ export function GerenciadorElementos({
     fecharModal();
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setImagensElemento(prev => [...prev, result]);
-        };
-        reader.readAsDataURL(file);
-      });
+  const adicionarImagemPorUrl = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    
+    // Validação básica de URL
+    try {
+      new URL(url);
+      setImagensElemento(prev => [...prev, url]);
+      setUrlInput('');
+    } catch (error) {
+      console.error('URL inválida:', error);
+      // Aqui você pode adicionar um toast de erro se quiser
     }
   };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    setUploadingImages(true);
+    
+    try {
+      // Processar cada arquivo
+      for (const file of Array.from(files)) {
+        try {
+          console.log('🚀 Iniciando upload de:', file.name);
+          const imageUrl = await uploadImageToService(file);
+          setImagensElemento(prev => [...prev, imageUrl]);
+          console.log('✅ Upload concluído:', file.name);
+        } catch (error) {
+          console.error('❌ Erro ao fazer upload da imagem:', file.name, error);
+          // Aqui você pode adicionar um toast de erro
+        }
+      }
+    } finally {
+      setUploadingImages(false);
+      // Limpar o input
+      event.target.value = '';
+    }
+  };
+
+  // Função real de upload que salva no blob e retorna URL
+  const uploadImageToService = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro no upload');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.url) {
+        throw new Error('Resposta inválida do servidor');
+      }
+      
+      console.log('✅ Upload realizado com sucesso:', data.url);
+      return data.url;
+      
+    } catch (error) {
+      console.error('❌ Erro no upload:', error);
+      throw new Error(`Falha no upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  };
+
+
 
   const removerImagem = (index: number) => {
     setImagensElemento(prev => prev.filter((_, i) => i !== index));
@@ -270,26 +336,77 @@ export function GerenciadorElementos({
               />
             </div>
 
-            {/* Upload de imagens */}
+            {/* URLs de imagens */}
             <div className="space-y-2">
               <Label>Imagens do Elemento</Label>
               <div className="space-y-4">
+                {/* Input para adicionar URL */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Cole a URL da imagem aqui..."
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    className="rounded-2xl flex-1"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        adicionarImagemPorUrl();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={adicionarImagemPorUrl}
+                    disabled={!urlInput.trim()}
+                    className="bg-[#27b99a] hover:bg-[#239d84] text-white rounded-full px-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  💡 Dica: Cole URLs de imagens (ex: https://exemplo.com/imagem.jpg)
+                </div>
+                
+                {/* Ou fazer upload de arquivo */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-xs text-gray-400 font-medium">OU</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+                
                 <div>
                   <input
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
+                    disabled={uploadingImages}
                     className="hidden"
                     id="elemento-images"
                   />
                   <label
                     htmlFor="elemento-images"
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition-colors"
+                    className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      uploadingImages 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-[#27b99a] hover:bg-[#239d84] cursor-pointer'
+                    } text-white`}
                   >
-                    <Upload className="w-4 h-4" />
-                    Adicionar Imagens
+                    {uploadingImages ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Fazendo Upload...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Fazer Upload de Imagens
+                      </>
+                    )}
                   </label>
+                  <div className="text-xs text-gray-500 mt-1">
+                    📁 Faça upload e obtenha o link automaticamente
+                  </div>
                 </div>
 
                 {/* Preview das imagens */}
@@ -336,3 +453,5 @@ export function GerenciadorElementos({
     </>
   );
 }
+
+export default GerenciadorElementos;

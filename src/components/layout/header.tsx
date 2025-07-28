@@ -24,6 +24,7 @@ import { CarrinhoDrawer } from '../header/carrinho-drawer';
 import { FavoritosDrawer } from '../header/favoritos-drawer';
 import { NotificacoesDrawer } from '../header/notificacoes-drawer';
 import { PerfilDropdown } from '../header/perfil-dropdown';
+import { useCarrinhoStore } from '@/services/carrinho-service';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,25 +44,51 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
+// Interface para os resultados da busca
+interface LivroSearchResult {
+  id: string;
+  nome: string;
+  slug: string;
+  descricao: string;
+  preco: number;
+  precoPromocional?: number;
+  thumbnail: string;
+  categoria: {
+    id: string;
+    titulo: string;
+    slug: string;
+  } | null;
+  emDestaque: boolean;
+  sku: string;
+  autor?: string;
+  faixaEtaria?: string;
+}
+
 // Componente para a barra de pesquisa com AJAX
 const SearchBar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<LivroSearchResult[]>([]);
 
   useEffect(() => {
     if (searchQuery.length > 2) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         setIsSearching(true);
-        // Simulando uma chamada API
-        setTimeout(() => {
-          setSearchResults([
-            { id: 1, title: 'Buquê de Rosas Vermelhas' },
-            { id: 2, title: 'Arranjo de Lírios Brancos' },
-            { id: 3, title: 'Cesta de Chocolates Premium' },
-          ]);
+        try {
+          const response = await fetch(`/api/livros/busca?q=${encodeURIComponent(searchQuery)}&limit=6`);
+          const data = await response.json();
+          
+          if (data.success) {
+            setSearchResults(data.livros);
+          } else {
+            setSearchResults([]);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar livros:', error);
+          setSearchResults([]);
+        } finally {
           setIsSearching(false);
-        }, 500);
+        }
       }, 300);
 
       return () => clearTimeout(timer);
@@ -69,6 +96,14 @@ const SearchBar = () => {
       setSearchResults([]);
     }
   }, [searchQuery]);
+
+  // Função para formatar preço
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(price);
+  };
 
   return (
     <div className="relative w-full max-w-md">
@@ -95,15 +130,79 @@ const SearchBar = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 shadow-lg rounded-md overflow-hidden z-50"
+            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 shadow-xl rounded-2xl overflow-hidden z-50 border border-gray-100 dark:border-gray-700"
           >
-            <ul className="py-2">
-              {searchResults.map((result) => (
-                <li key={result.id} className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                  {result.title}
-                </li>
+            <div className="max-h-96 overflow-y-auto">
+              {searchResults.map((livro) => (
+                <Link
+                  key={livro.id}
+                  href={livro.categoria ? `/categoria-livro/${livro.categoria.slug}/livro/${livro.slug}` : `/livro/${livro.slug}`}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  onClick={() => setSearchResults([])}
+                >
+                  {/* Thumbnail */}
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                    <Image
+                      src={livro.thumbnail}
+                      alt={livro.nome}
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/placeholder-book.jpg';
+                      }}
+                    />
+                  </div>
+
+                  {/* Informações do livro */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                          {livro.nome}
+                        </h4>
+                        
+                        {/* Categoria */}
+                        {livro.categoria && (
+                          <span className="inline-block px-2 py-0.5 bg-[#ff0080]/10 text-[#ff0080] text-xs rounded-full mt-1">
+                            {livro.categoria.titulo}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Preço */}
+                      <div className="text-right flex-shrink-0">
+                        {livro.precoPromocional ? (
+                          <div className="space-y-0.5">
+                            <div className="text-xs text-gray-400 line-through">
+                              {formatPrice(livro.preco)}
+                            </div>
+                            <div className="text-sm font-semibold text-[#27b99a]">
+                              {formatPrice(livro.precoPromocional)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {formatPrice(livro.preco)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
               ))}
-            </ul>
+              
+              {/* Ver todos os resultados */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/50">
+                <Link
+                  href={`/busca?q=${encodeURIComponent(searchQuery)}`}
+                  className="block text-center text-sm text-[#ff0080] hover:text-[#ff0080]/80 font-medium transition-colors"
+                  onClick={() => setSearchResults([])}
+                >
+                  Ver todos os resultados para "{searchQuery}"
+                </Link>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -317,7 +416,8 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [cartCount, setCartCount] = useState(0);
+  const { itens, quantidade } = useCarrinhoStore();
+  const [favoritosCount, setFavoritosCount] = useState(0);
   
   // Estados para controlar os drawers e dropdowns
   const [carrinhoOpen, setCarrinhoOpen] = useState(false);
@@ -336,75 +436,37 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Simulando carregamento do carrinho e dados do usuário
+  // Carregar contadores reais do localStorage
   useEffect(() => {
-    setCartCount(3); // Simulando 3 itens no carrinho
+    const carregarContadores = () => {
+      try {
+        // Carregar favoritos
+        const favoritosStorage = JSON.parse(localStorage.getItem('favoritos') || '[]');
+        if (Array.isArray(favoritosStorage)) {
+          setFavoritosCount(favoritosStorage.length);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar contadores:', error);
+        setFavoritosCount(0);
+      }
+    };
+    
+    carregarContadores();
+    
+    // Escutar eventos de atualização
+    const handleCarrinhoAtualizado = () => carregarContadores();
+    const handleFavoritosAtualizado = () => carregarContadores();
+    
+    window.addEventListener('carrinho-atualizado', handleCarrinhoAtualizado);
+    window.addEventListener('favoritos-atualizado', handleFavoritosAtualizado);
+    
+    return () => {
+      window.removeEventListener('carrinho-atualizado', handleCarrinhoAtualizado);
+      window.removeEventListener('favoritos-atualizado', handleFavoritosAtualizado);
+    };
   }, []);
   
-  // Dados simulados para os componentes
-  const produtosCarrinho = [
-    {
-      id: '1',
-      titulo: 'Buquê de Rosas Vermelhas',
-      preco: 149.90,
-      quantidade: 1,
-      imagem: '/produtos/buque-rosas.jpg',
-      slug: 'buque-de-rosas-vermelhas'
-    },
-    {
-      id: '2',
-      titulo: 'Arranjo de Orquídeas Premium',
-      preco: 289.90,
-      precoPromocional: 259.90,
-      quantidade: 1,
-      imagem: '/produtos/arranjo-orquideas.jpg',
-      slug: 'arranjo-de-orquideas-premium'
-    },
-    {
-      id: '3',
-      titulo: 'Cesta de Café da Manhã Grande',
-      preco: 199.90,
-      quantidade: 1,
-      imagem: '/produtos/cesta-cafe-manha.jpg',
-      slug: 'cesta-de-cafe-da-manha-grande'
-    }
-  ];
-  
-  const produtosFavoritos = [
-    {
-      id: '1',
-      titulo: 'Buquê de Rosas Vermelhas',
-      preco: 149.90,
-      imagem: '/produtos/buque-rosas.jpg',
-      slug: 'buque-de-rosas-vermelhas',
-      disponivel: true
-    },
-    {
-      id: '4',
-      titulo: 'Buquê de Girassóis',
-      preco: 129.90,
-      imagem: '/produtos/buque-girassois.jpg',
-      slug: 'buque-de-girassois',
-      disponivel: true
-    },
-    {
-      id: '5',
-      titulo: 'Arranjo de Flores Tropicais',
-      preco: 219.90,
-      precoPromocional: 199.90,
-      imagem: '/produtos/arranjo-flores-tropicais.jpg',
-      slug: 'arranjo-de-flores-tropicais',
-      disponivel: true
-    },
-    {
-      id: '6',
-      titulo: 'Kit Especial Dia dos Namorados',
-      preco: 349.90,
-      imagem: '/produtos/kit-dia-namorados.jpg',
-      slug: 'kit-especial-dia-dos-namorados',
-      disponivel: false
-    }
-  ];
+
   
   const notificacoes = [
     {
@@ -512,9 +574,9 @@ export function Header() {
               onClick={() => setCarrinhoOpen(true)}
             >
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
+              {quantidade > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#ff0080] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {cartCount}
+                  {quantidade}
                 </span>
               )}
             </Button>
@@ -527,9 +589,9 @@ export function Header() {
               onClick={() => setFavoritosOpen(true)}
             >
               <Heart className="h-5 w-5" />
-              {produtosFavoritos.length > 0 && (
+              {favoritosCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#27b99a] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {produtosFavoritos.length}
+                  {favoritosCount}
                 </span>
               )}
             </Button>
@@ -618,17 +680,11 @@ export function Header() {
       <CarrinhoDrawer 
         isOpen={carrinhoOpen} 
         onClose={() => setCarrinhoOpen(false)} 
-        produtos={produtosCarrinho}
-        onUpdateQuantidade={handleUpdateQuantidade}
-        onRemoveItem={handleRemoverItemCarrinho}
       />
 
       <FavoritosDrawer
         isOpen={favoritosOpen}
         onClose={() => setFavoritosOpen(false)}
-        produtos={produtosFavoritos}
-        onAddToCart={handleAddToCart}
-        onRemoveFavorito={handleRemoverFavorito}
       />
 
       <NotificacoesDrawer

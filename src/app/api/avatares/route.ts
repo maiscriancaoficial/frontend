@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const tipo = searchParams.get('tipo') || '';
     const ativo = searchParams.get('ativo');
 
+    console.log('🔍 Buscando avatares com parâmetros:', { page, limit, busca, tipo, ativo });
+
     const skip = (page - 1) * limit;
 
     // Construir filtros
@@ -25,13 +27,18 @@ export async function GET(request: NextRequest) {
 
     if (tipo) {
       where.tipo = tipo;
+      console.log('🎯 Filtro por tipo:', tipo);
     }
 
     if (ativo !== null && ativo !== '') {
       where.ativo = ativo === 'true';
     }
+    
+    console.log('📋 Filtros construídos:', where);
 
     // Buscar avatares
+    console.log('💾 Executando query no banco...');
+    
     const [avatares, total] = await Promise.all([
       prisma.avatar.findMany({
         where,
@@ -39,13 +46,8 @@ export async function GET(request: NextRequest) {
           elementos: {
             where: { ativo: true },
             orderBy: { ordem: 'asc' }
-          },
-          _count: {
-            select: {
-              elementos: true,
-              livrosPersonalizados: true
-            }
           }
+          // Removido _count temporariamente para debug
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -53,6 +55,9 @@ export async function GET(request: NextRequest) {
       }),
       prisma.avatar.count({ where })
     ]);
+    
+    console.log('✅ Avatares encontrados:', avatares.length);
+    console.log('📊 Total no banco:', total);
 
     return NextResponse.json({
       success: true,
@@ -116,8 +121,8 @@ export async function POST(request: NextRequest) {
           create: elementos.map((elemento: any, index: number) => ({
             tipo: elemento.tipo,
             nome: elemento.nome,
-            arquivo: elemento.imagens?.[0] || '', // Primeira imagem como arquivo principal
-            cor: elemento.cor,
+            arquivo: elemento.imagens?.[0] || elemento.arquivo || '', // Primeira imagem ou arquivo principal
+            cor: elemento.cor || null,
             ordem: index,
             ativo: elemento.ativo ?? true
           }))

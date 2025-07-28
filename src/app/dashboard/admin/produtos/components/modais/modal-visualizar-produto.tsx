@@ -310,7 +310,7 @@ export function ModalVisualizarProduto({ isOpen, onClose, produto, onEdit }: Mod
                 <div>
                   <h3 className="text-sm font-medium mb-1">Link do Produto</h3>
                   <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-md font-mono text-xs break-all">
-                    {`https://floriculturanaweb.com/produto/${produto.slug}`}
+                    {`https://maiscrianca.com/produto/${produto.slug}`}
                   </div>
                 </div>
               </CardContent>

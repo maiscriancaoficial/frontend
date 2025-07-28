@@ -1,11 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, RefreshCw, Download, BadgeCheck, UserX, Crown, User } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Plus, UserPlus, BadgeCheck, UserX, Crown, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FiltroClientesProps {
   onBuscar: (termo: string) => void;
@@ -18,100 +30,119 @@ interface FiltroClientesProps {
     verificados: number;
     premium: number;
   };
+  onAdicionarCliente?: () => void;
 }
 
-export function FiltroClientes({ onBuscar, onStatusChange, statusAtual, estatisticas }: FiltroClientesProps) {
+export function FiltroClientes({ onBuscar, onStatusChange, statusAtual, estatisticas, onAdicionarCliente }: FiltroClientesProps) {
   const [termoBusca, setTermoBusca] = useState('');
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
-  const handleBusca = () => {
+  const aplicarFiltros = () => {
     onBuscar(termoBusca);
+    setFiltrosAbertos(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleBusca();
-    }
+  const limparFiltros = () => {
+    setTermoBusca('');
+    setFiltroStatus('todos');
+    onBuscar('');
+    onStatusChange('todos');
   };
 
   return (
-    <div className="space-y-4">
-      {/* Barra de busca */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-grow">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-teal-500" />
+    <div className="space-y-4 mb-6">
+      <Card className="rounded-3xl border border-gray-100 dark:border-gray-800 transition-all duration-300 overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            {/* Busca por termo */}
+            <div className="relative flex-grow w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <Input
+                className="pl-9 rounded-2xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 w-full focus:border-[#27b99a] focus:ring-[#27b99a]/20"
+                placeholder="Buscar por nome, email ou telefone..."
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && aplicarFiltros()}
+              />
+              {termoBusca && (
+                <button
+                  onClick={() => setTermoBusca('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            {/* Botão de filtros avançados */}
+            <Popover open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="rounded-2xl border-gray-300 hover:border-[#27b99a] hover:text-[#27b99a] gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filtros Avançados</span>
+                  <span className="inline sm:hidden">Filtros</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-xl" align="end">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">Filtros Avançados</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Status do Cliente</label>
+                      <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                        <SelectTrigger className="h-8 text-sm rounded-2xl focus:border-[#27b99a] focus:ring-[#27b99a]/20">
+                          <SelectValue placeholder="Selecione o status" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="todos">Todos os clientes</SelectItem>
+                          <SelectItem value="ativos">Ativos</SelectItem>
+                          <SelectItem value="inativos">Inativos</SelectItem>
+                          <SelectItem value="verificados">Verificados</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between pt-4 space-x-2">
+                    <Button variant="outline" size="sm" onClick={limparFiltros} className="rounded-2xl border-gray-300 hover:border-[#ff0080] hover:text-[#ff0080] transition-all duration-300">
+                      Limpar Filtros
+                    </Button>
+                    <Button size="sm" onClick={aplicarFiltros} className="rounded-2xl bg-[#27b99a] hover:bg-[#22a085] text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                      Aplicar Filtros
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Botão de busca - visível apenas em telas menores */}
+            <Button className="md:hidden rounded-full" onClick={aplicarFiltros}>
+              <Search className="h-4 w-4 mr-2" />
+              Buscar
+            </Button>
+            
+            {/* Botão de adicionar cliente */}
+            {onAdicionarCliente && (
+              <Button 
+                className="rounded-2xl bg-[#ff0080] hover:bg-[#e6006b] text-white gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                onClick={onAdicionarCliente}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Adicionar Cliente</span>
+                <span className="inline sm:hidden">Adicionar</span>
+              </Button>
+            )}
           </div>
-          <Input
-            type="text"
-            placeholder="Buscar por nome, email ou telefone..."
-            className="pl-10 border-teal-200 dark:border-teal-800 focus:border-teal-400 focus:ring-teal-400 rounded-[12px]"
-            value={termoBusca}
-            onChange={(e) => setTermoBusca(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  onClick={handleBusca}
-                  className="border-teal-200 dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-[12px]"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filtrar resultados</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  onClick={() => {
-                    setTermoBusca('');
-                    onBuscar('');
-                    onStatusChange('todos');
-                  }}
-                  className="border-teal-200 dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-[12px]"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Limpar filtros</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  className="border-teal-200 dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-[12px]"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Exportar clientes</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       
-      {/* Filtros por status */}
+      {/* Filtros por status - badges */}
       <div className="flex flex-wrap gap-2">
         <Button
           variant="ghost"
@@ -119,13 +150,13 @@ export function FiltroClientes({ onBuscar, onStatusChange, statusAtual, estatist
           onClick={() => onStatusChange('todos')}
           className={`rounded-full px-4 ${
             statusAtual === 'todos'
-              ? 'bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-800/30 dark:text-teal-300'
-              : 'text-gray-600 hover:bg-teal-50 dark:text-gray-300 dark:hover:bg-teal-900/20'
+              ? 'bg-[#27b99a]/10 text-[#27b99a] border-[#27b99a]/20'
+              : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900/20'
           }`}
         >
           <User size={14} className="mr-1" />
           <span>Todos</span>
-          <Badge variant="secondary" className="ml-2 bg-teal-200/50 text-teal-800 dark:bg-teal-800/50 dark:text-teal-300">{estatisticas.total}</Badge>
+          <Badge variant="secondary" className="ml-2 bg-[#27b99a]/20 text-[#27b99a]">{estatisticas.total}</Badge>
         </Button>
         
         <Button
