@@ -596,21 +596,6 @@ export function Header() {
               )}
             </Button>
 
-            {/* Notificações */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              onClick={() => setNotificacoesOpen(true)}
-            >
-              <Bell className="h-5 w-5" />
-              {notificacoes.filter(n => !n.lida).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#ff0080] text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {notificacoes.filter(n => !n.lida).length}
-                </span>
-              )}
-            </Button>
-
             {/* Alternador de tema */}
             <Button 
               variant="ghost" 

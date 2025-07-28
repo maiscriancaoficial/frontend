@@ -5,6 +5,7 @@ import { ProdutoGaleria } from '@/components/produto/produto-galeria';
 import { ProdutoInfo } from '@/components/produto/produto-info';
 import { ProdutoDescricao } from '@/components/produto/produto-descricao';
 import { ProdutosRelacionados } from '@/components/produto/produtos-relacionados';
+import { getProdutosDestaque } from '@/services/produto-service';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import Link from 'next/link';
 import { ChevronRight, Home } from 'lucide-react';
@@ -12,6 +13,15 @@ import { ChevronRight, Home } from 'lucide-react';
 type ProdutoPageParams = {
   slug: string;
 };
+
+// Componente do servidor para produtos relacionados
+async function ProdutosRelacionadosSection() {
+  const produtos = await getProdutosDestaque(8); // Buscando 8 produtos relacionados
+  return <ProdutosRelacionados 
+    produtos={produtos}
+    titulo="Produtos Relacionados"
+  />;
+}
 
 export default async function ProdutoPage(
   { params }: { params: ProdutoPageParams }
@@ -90,9 +100,7 @@ export default async function ProdutoPage(
         <ProdutoDescricao produto={produto} />
         
         {/* Produtos relacionados */}
-        {produto.produtosRelacionados && produto.produtosRelacionados.length > 0 && (
-          <ProdutosRelacionados produtos={produto.produtosRelacionados} />
-        )}
+        <ProdutosRelacionadosSection />
       </div>
     </SiteLayout>
   );
