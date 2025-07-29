@@ -46,7 +46,10 @@ const rotasPublicas = [
   // APIs públicas de livros
   '/api/livros/.*',
   '/api/categorias/.*',
-  '/api/produtos/.*'
+  '/api/produtos/.*',
+  
+  // APIs públicas de banners
+  '/api/banners/ativos'
 ];
 
 // Regras de redirecionamento baseadas em role
